@@ -8,23 +8,14 @@ import serverless from 'serverless-http';
 import { corsOptions } from '../../config/corsOptions.js';
 import { applySecurity } from '../../middlewares/security.js';
 import { errorHandler } from '../../middlewares/errorHandler.js';
-import pkg from 'pg';
-const { Pool } = pkg;
+import pool from '../../config/db.js';
 
 const app = express();
 app.use(cors(corsOptions)); // CORS seguro
 app.use(express.json());
 app.use(...applySecurity); // Seguridad
 
-// Configuración de PostgreSQL para Netlify
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 1, // Importante: limitar conexiones en serverless
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
-
+// Configurar pool de BD (puede ser null si no está configurada)
 app.set('pool', pool);
 
 // Importar routers

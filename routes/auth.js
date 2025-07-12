@@ -1,5 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
+import { requireDatabase } from '../middlewares/checkDatabase.js';
 const router = express.Router();
 import * as authController from '../controllers/authController.js';
 
@@ -96,6 +97,7 @@ import * as authController from '../controllers/authController.js';
 // Validación de datos para login
 router.post(
   '/login',
+  requireDatabase, // Verificar BD antes que nada
   [
     body('username').notEmpty().withMessage('El usuario es requerido'),
     body('password').notEmpty().withMessage('La contraseña es requerida')
@@ -113,6 +115,7 @@ router.post(
 // Validación de datos para signup
 router.post(
   '/signup',
+  requireDatabase, // Verificar BD antes que nada
   [
     body('usuario').notEmpty().withMessage('El usuario es requerido'),
     body('contrasenia').notEmpty().withMessage('La contraseña es requerida'),
