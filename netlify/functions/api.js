@@ -5,8 +5,9 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import serverless from 'serverless-http';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { corsOptions } from '../../config/corsOptions.js';
-import { applySecurity } from '../../middlewares/security.js';
 import { errorHandler } from '../../middlewares/errorHandler.js';
 import pool from '../../config/db.js';
 
@@ -14,8 +15,13 @@ const app = express();
 app.use(cors(corsOptions)); // CORS seguro
 app.use(express.json());
 
-// Aplicar middlewares de seguridad
-app.use(...applySecurity);
+// Aplicar middlewares de seguridad directamente
+app.use(helmet());
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Límite de 100 peticiones por IP
+  message: 'Demasiadas peticiones desde esta IP, intenta más tarde.'
+}));
 
 // Configurar pool de BD (puede ser null si no está configurada)
 app.set('pool', pool);
