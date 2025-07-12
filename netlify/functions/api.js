@@ -1,53 +1,37 @@
 // netlify/functions/api.js
-// Función serverless para Netlify que maneja todas las rutas de la API
-import dotenv from 'dotenv';
-dotenv.config();
 import express from 'express';
-import cors from 'cors';
 import serverless from 'serverless-http';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import { corsOptions } from '../../config/corsOptions.js';
-import { errorHandler } from '../../middlewares/errorHandler.js';
-import pool from '../../config/db.js';
 
 const app = express();
-app.use(cors(corsOptions)); // CORS seguro
 app.use(express.json());
 
-// Aplicar middlewares de seguridad directamente
-app.use(helmet());
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Límite de 100 peticiones por IP
-  message: 'Demasiadas peticiones desde esta IP, intenta más tarde.'
-}));
+// Ruta de prueba simple
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'API funcionando correctamente', 
+    timestamp: new Date().toISOString(),
+    status: 'ok'
+  });
+});
 
-// Configurar pool de BD (puede ser null si no está configurada)
-app.set('pool', pool);
+// Ruta de ping simple
+app.get('/api/ping', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: 'netlify',
+    message: 'Pong!'
+  });
+});
 
-// Importar routers
-import clientesRoutes from '../../routes/clientes.js';
-import camionesRoutes from '../../routes/camiones.js';
-import diasEntregaRoutes from '../../routes/diasEntrega.js';
-import camionesDiasRoutes from '../../routes/camionesDias.js';
-import pingRoutes from '../../routes/ping.js';
-import authRoutes from '../../routes/auth.js';
-// import { swaggerUi, swaggerSpec } from '../../config/swagger.js';
+// Ruta de clientes simple
+app.get('/api/clientes', (req, res) => {
+  res.json({
+    message: "No hay conexión a la base de datos",
+    error: "DATABASE_URL no está configurada",
+    status: "database_not_configured",
+    timestamp: new Date().toISOString()
+  });
+});
 
-// Usar las rutas
-app.use('/api/clientes', clientesRoutes);
-app.use('/api/camiones', camionesRoutes);
-app.use('/api/dias_entrega', diasEntregaRoutes);
-app.use('/api/camiones_dias', camionesDiasRoutes);
-app.use('/api/ping', pingRoutes);
-app.use('/api/auth', authRoutes);
-
-// Swagger docs (comentado temporalmente para debug)
-// app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-// Manejo centralizado de errores
-app.use(errorHandler);
-
-// Exportar como función serverless
 export const handler = serverless(app);
