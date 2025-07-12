@@ -3,6 +3,7 @@
 import express from 'express';
 import { getCamionesDias, getClientesAsignados } from '../controllers/camionesDiasController.js';
 import { requireDatabase } from '../middlewares/checkDatabase.js';
+
 const router = express.Router();
 
 router.get('/', requireDatabase, getCamionesDias);

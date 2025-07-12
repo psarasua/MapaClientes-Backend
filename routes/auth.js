@@ -1,8 +1,9 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { requireDatabase } from '../middlewares/checkDatabase.js';
-const router = express.Router();
 import * as authController from '../controllers/authController.js';
+
+const router = express.Router();
 
 /**
  * @swagger

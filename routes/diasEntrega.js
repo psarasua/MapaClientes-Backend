@@ -3,6 +3,7 @@
 import express from 'express';
 import { getDiasEntrega } from '../controllers/diasEntregaController.js';
 import { requireDatabase } from '../middlewares/checkDatabase.js';
+
 const router = express.Router();
 
 // Ruta para obtener los días de entrega (requiere BD)
