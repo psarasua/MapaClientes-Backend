@@ -1,13 +1,16 @@
 // routes/clientes.js
 // Define las rutas para operaciones sobre clientes. Conecta las rutas HTTP con el controlador correspondiente.
 import express from 'express';
-import { getClientes } from '../controllers/clientesController.js';
-import verifyToken from '../middlewares/verifyToken.js';
-import { requireDatabase } from '../middlewares/checkDatabase.js';
 
 const router = express.Router();
 
-// Obtener todos los clientes (protegido + requiere BD)
-router.get('/', requireDatabase, verifyToken, getClientes);
+// Ruta simple de prueba
+router.get('/', (req, res) => {
+  res.json({
+    message: "Ruta de clientes funcionando",
+    status: "ok",
+    timestamp: new Date().toISOString()
+  });
+});
 
 export default router;
