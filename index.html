@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapaClientes Backend API</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .endpoint {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .method {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .status {
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ MapaClientes Backend API</h1>
+        
+        <div class="status">✅ API funcionando en Netlify</div>
+        
+        <p>Bienvenido a la API backend de MapaClientes. Esta API proporciona endpoints para gestionar clientes, camiones y rutas de entrega.</p>
+        
+        <h2>📚 Documentación</h2>
+        <p>Accede a la documentación completa de la API con Swagger:</p>
+        <div class="endpoint">
+            <strong><a href="/api/docs" target="_blank">📖 Documentación Swagger UI</a></strong>
+        </div>
+        
+        <h2>🔌 Endpoints principales</h2>
+        
+        <div class="endpoint">
+            <span class="method">GET</span> <code>/api/ping</code> - Verificar estado del servidor
+        </div>
+        
+        <div class="endpoint">
+            <span class="method">POST</span> <code>/api/auth/login</code> - Autenticación de usuario
+        </div>
+        
+        <div class="endpoint">
+            <span class="method">POST</span> <code>/api/auth/signup</code> - Registro de usuario
+        </div>
+        
+        <div class="endpoint">
+            <span class="method">GET</span> <code>/api/clientes</code> - Obtener lista de clientes
+        </div>
+        
+        <div class="endpoint">
+            <span class="method">GET</span> <code>/api/camiones</code> - Obtener lista de camiones
+        </div>
+        
+        <div class="endpoint">
+            <span class="method">GET</span> <code>/api/dias_entrega</code> - Obtener días de entrega
+        </div>
+        
+        <div class="endpoint">
+            <span class="method">GET</span> <code>/api/camiones_dias</code> - Obtener relación camiones-días
+        </div>
+        
+        <h2>🔒 Autenticación</h2>
+        <p>La mayoría de endpoints requieren autenticación mediante JWT. Incluye el token en el header:</p>
+        <div class="endpoint">
+            <code>Authorization: Bearer &lt;tu_token_jwt&gt;</code>
+        </div>
+        
+        <h2>🌐 URLs de prueba</h2>
+        <p>Prueba estos endpoints directamente:</p>
+        <div class="endpoint">
+            <strong><a href="/api/ping" target="_blank">🏓 Test de conectividad</a></strong> - Debería responder "pong"
+        </div>
+        
+        <div class="footer">
+            <p>API desplegada en Netlify Functions • Desarrollado con Express.js + PostgreSQL</p>
+        </div>
+    </div>
+</body>
+</html>

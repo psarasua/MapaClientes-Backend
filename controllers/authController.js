@@ -1,8 +1,8 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const pool = require('../config/db');
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import pool from '../config/db.js';
 
-exports.login = async (req, res, next) => {
+export const login = async (req, res, next) => {
   try {
     const { usuario, contrasenia } = req.body;
     if (!usuario || !contrasenia) {
@@ -31,7 +31,7 @@ exports.login = async (req, res, next) => {
   }
 };
 
-exports.signup = async (req, res, next) => {
+export const signup = async (req, res, next) => {
   try {
     const { usuario, contrasenia, email } = req.body;
     if (!usuario || !contrasenia || !email) {
