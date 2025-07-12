@@ -1,12 +1,8 @@
 // routes/ping.js
 // Endpoint simple para chequeo de salud del backend (ping).
 import express from 'express';
-const router = express.Router();
-
-// routes/ping.js
-// Endpoint simple para chequeo de salud del backend (ping).
-import express from 'express';
 import { isDatabaseConfigured, getDatabaseErrorMessage } from '../config/db.js';
+
 const router = express.Router();
 
 router.get('/', async (req, res) => {
@@ -43,7 +39,6 @@ router.get('/', async (req, res) => {
   }
 
   res.status(200).json(response);
-});
 });
 
 export default router;
