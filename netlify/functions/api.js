@@ -33,7 +33,7 @@ import diasEntregaRoutes from '../../routes/diasEntrega.js';
 import camionesDiasRoutes from '../../routes/camionesDias.js';
 import pingRoutes from '../../routes/ping.js';
 import authRoutes from '../../routes/auth.js';
-import { swaggerUi, swaggerSpec } from '../../config/swagger.js';
+// import { swaggerUi, swaggerSpec } from '../../config/swagger.js';
 
 // Usar las rutas
 app.use('/api/clientes', clientesRoutes);
@@ -42,7 +42,9 @@ app.use('/api/dias_entrega', diasEntregaRoutes);
 app.use('/api/camiones_dias', camionesDiasRoutes);
 app.use('/api/ping', pingRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Swagger docs (comentado temporalmente para debug)
+// app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Manejo centralizado de errores
 app.use(errorHandler);
