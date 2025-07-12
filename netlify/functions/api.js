@@ -13,7 +13,11 @@ import pool from '../../config/db.js';
 const app = express();
 app.use(cors(corsOptions)); // CORS seguro
 app.use(express.json());
-app.use(...applySecurity); // Seguridad
+
+// Aplicar middlewares de seguridad
+applySecurity.forEach(middleware => {
+  app.use(middleware);
+});
 
 // Configurar pool de BD (puede ser null si no está configurada)
 app.set('pool', pool);
