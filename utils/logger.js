@@ -3,24 +3,7 @@
 
 import winston from 'winston';
 
-// Configuración de transports según el entorno
-const transports = [
-  new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  })
-];
-
-// Solo agregar transports de archivo en desarrollo (no en Netlify/serverless)
-if (process.env.NODE_ENV !== 'production' && !process.env.NETLIFY) {
-  transports.push(
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' })
-  );
-}
-
+// Configuración simplificada para entornos serverless
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'warn' : 'info',
   format: winston.format.combine(
@@ -29,7 +12,17 @@ const logger = winston.createLogger({
       return `${timestamp} [${level.toUpperCase()}]: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''}`;
     })
   ),
-  transports: transports
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  ]
 });
+
+// En Netlify/serverless, solo usamos console logging
+// No intentamos crear archivos de log para evitar errores ENOENT
 
 export default logger;
