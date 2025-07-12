@@ -1,35 +1,40 @@
 // netlify/functions/api.js
 import express from 'express';
+import cors from 'cors';
 import serverless from 'serverless-http';
 
+// Importar rutas
+import clientesRoutes from '../../routes/clientes.js';
+import pingRoutes from '../../routes/ping.js';
+
 const app = express();
+
+// Middlewares básicos
+app.use(cors());
 app.use(express.json());
 
-// Ruta de prueba simple
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'API funcionando correctamente', 
-    timestamp: new Date().toISOString(),
-    status: 'ok'
-  });
-});
+// Rutas principales
+app.use('/api/clientes', clientesRoutes);
+app.use('/api/ping', pingRoutes);
 
-// Ruta de ping simple
-app.get('/api/ping', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: 'netlify',
-    message: 'Pong!'
-  });
-});
-
-// Ruta de clientes simple
-app.get('/api/clientes', (req, res) => {
+// Ruta de bienvenida
+app.get('/api', (req, res) => {
   res.json({
-    message: "No hay conexión a la base de datos",
-    error: "DATABASE_URL no está configurada",
-    status: "database_not_configured",
+    message: 'API MapaClientes funcionando correctamente',
+    version: '1.0.0',
+    endpoints: {
+      ping: '/api/ping',
+      clientes: '/api/clientes'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Manejo de rutas no encontradas
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Endpoint no encontrado',
+    message: 'La ruta solicitada no existe',
     timestamp: new Date().toISOString()
   });
 });

@@ -1,17 +1,24 @@
 // routes/clientes.js
-// Define las rutas para operaciones sobre clientes. Conecta las rutas HTTP con el controlador correspondiente.
 import express from 'express';
-import { requireDatabase } from '../middlewares/checkDatabase.js';
 
 const router = express.Router();
 
-// Obtener todos los clientes (requiere BD)
-router.get('/', requireDatabase, (req, res) => {
-  // Si llegamos aquí, la BD está configurada
+// GET /api/clientes - Obtener todos los clientes
+router.get('/', (req, res) => {
   res.json({
     message: "Endpoint de clientes funcionando",
-    note: "Base de datos configurada pero sin datos reales todavía",
+    data: [],
     status: "ok",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// POST /api/clientes - Crear nuevo cliente
+router.post('/', (req, res) => {
+  res.json({
+    message: "Cliente creado (simulado)",
+    data: { id: 1, ...req.body },
+    status: "created",
     timestamp: new Date().toISOString()
   });
 });
