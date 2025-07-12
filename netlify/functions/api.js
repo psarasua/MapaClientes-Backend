@@ -15,9 +15,7 @@ app.use(cors(corsOptions)); // CORS seguro
 app.use(express.json());
 
 // Aplicar middlewares de seguridad
-applySecurity.forEach(middleware => {
-  app.use(middleware);
-});
+app.use(...applySecurity);
 
 // Configurar pool de BD (puede ser null si no está configurada)
 app.set('pool', pool);
