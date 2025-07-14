@@ -5,11 +5,61 @@ import serverless from 'serverless-http';
 import pkg from 'pg';
 import { initializeDatabase, checkTableExists, getDatabaseInfo } from '../../config/dbInit.js';
 
+// Cargar variables de entorno en desarrollo local
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    import('dotenv').then(dotenv => {
+      dotenv.config();
+    }).catch(() => {
+      console.log('dotenv no disponible, usando variables de entorno del sistema');
+    });
+  } catch (error) {
+    console.log('dotenv no disponible, usando variables de entorno del sistema');
+  }
+}
+
 const { Pool } = pkg;
 
-// Configuración de la base de datos
+// Validación de variables de entorno críticas
+const validateEnvironmentVariables = () => {
+  const requiredVars = ['DATABASE_URL'];
+  const missingVars = [];
+  const warnings = [];
+
+  requiredVars.forEach(varName => {
+    if (!process.env[varName]) {
+      missingVars.push(varName);
+    }
+  });
+
+  // Verificar si DATABASE_URL está definida
+  if (!process.env.DATABASE_URL) {
+    warnings.push('⚠️ DATABASE_URL no está definida, usando cadena de conexión por defecto');
+    warnings.push('📋 Para producción, configura DATABASE_URL en las variables de entorno');
+  } else {
+    console.log('✅ DATABASE_URL configurada correctamente');
+  }
+
+  // Mostrar warnings
+  if (warnings.length > 0) {
+    console.log('\n🔔 AVISOS DE CONFIGURACIÓN:');
+    warnings.forEach(warning => console.log(warning));
+    console.log('');
+  }
+
+  return {
+    hasErrors: missingVars.length > 0,
+    missingVars,
+    warnings
+  };
+};
+
+// Ejecutar validación
+const envValidation = validateEnvironmentVariables();
+
+// Configuración de la base de datos usando variables de entorno
 const pool = new Pool({
-  connectionString: 'postgresql://neondb_owner:npg_us8Q7AjPFHUT@ep-rapid-grass-acjetl0d-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_us8Q7AjPFHUT@ep-rapid-grass-acjetl0d-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
   ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
@@ -27,16 +77,27 @@ pool.on('error', (err) => {
 
 // Inicialización de la base de datos
 let dbInitialized = false;
+let dbInitError = null;
 
 const initDB = async () => {
   if (!dbInitialized) {
     try {
       console.log('🚀 Iniciando verificación de base de datos...');
+      console.log('🔗 DATABASE_URL configurada:', process.env.DATABASE_URL ? 'Sí' : 'No (usando fallback)');
+      
+      // Verificar conexión primero
+      const client = await pool.connect();
+      console.log('✅ Conexión a PostgreSQL establecida');
+      client.release();
+      
+      // Inicializar tablas
       await initializeDatabase(pool);
       dbInitialized = true;
+      dbInitError = null;
       console.log('✅ Base de datos inicializada correctamente');
     } catch (error) {
       console.error('❌ Error inicializando la base de datos:', error);
+      dbInitError = error;
       // No bloqueamos la aplicación, pero registramos el error
     }
   }
@@ -97,6 +158,7 @@ app.get('/api', (req, res) => {
     endpoints: {
       ping: '/api/ping',
       health: '/api/health',
+      env: '/api/env',
       database: {
         info: '/api/database',
         reinit: '/api/database/reinit (POST)'
@@ -150,6 +212,40 @@ app.get('/api/ping', async (req, res) => {
     };
 
     successResponse(res, response, '⚠️ API funcionando pero BD desconectada');
+  }
+});
+
+// RUTA ENV - Verificar configuración de variables de entorno
+app.get('/api/env', (req, res) => {
+  try {
+    const envCheck = {
+      validation: envValidation,
+      variables: {
+        DATABASE_URL: process.env.DATABASE_URL ? 'CONFIGURADO' : 'NO CONFIGURADO',
+        NODE_ENV: process.env.NODE_ENV || 'no definido',
+        CORS_ORIGIN: process.env.CORS_ORIGIN || 'no definido (usando *)',
+        PORT: process.env.PORT || 'no definido (usando default)'
+      },
+      recommendations: []
+    };
+
+    // Agregar recomendaciones según el estado
+    if (!process.env.DATABASE_URL) {
+      envCheck.recommendations.push('🔴 CRÍTICO: Configura DATABASE_URL para producción');
+    }
+
+    if (!process.env.NODE_ENV) {
+      envCheck.recommendations.push('🟡 RECOMENDADO: Configura NODE_ENV=production');
+    }
+
+    if (!process.env.CORS_ORIGIN || process.env.CORS_ORIGIN === '*') {
+      envCheck.recommendations.push('🟡 SEGURIDAD: Configura CORS_ORIGIN con tu dominio específico');
+    }
+
+    successResponse(res, envCheck, '🔧 Configuración de variables de entorno');
+  } catch (error) {
+    console.error('❌ Error verificando variables de entorno:', error);
+    errorResponse(res, 'Error verificando configuración', 500, error.message);
   }
 });
 
@@ -428,7 +524,11 @@ app.get('/api/database', async (req, res) => {
   try {
     // Verificar si la base de datos está inicializada
     if (!dbInitialized) {
-      return errorResponse(res, 'Base de datos no inicializada', 503);
+      return errorResponse(res, 'Base de datos no inicializada', 503, {
+        error: dbInitError ? dbInitError.message : 'Error desconocido',
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+        connectionString: process.env.DATABASE_URL ? '[CONFIGURADO]' : '[USANDO FALLBACK]'
+      });
     }
 
     const dbInfo = await getDatabaseInfo(pool);
@@ -455,6 +555,12 @@ app.get('/api/database', async (req, res) => {
 
     const response = {
       initialized: dbInitialized,
+      environment: {
+        databaseUrl: process.env.DATABASE_URL ? 'CONFIGURADO' : 'USANDO FALLBACK',
+        nodeEnv: process.env.NODE_ENV || 'no definido',
+        corsOrigin: process.env.CORS_ORIGIN || '*',
+        envValidation: envValidation
+      },
       tables: Object.values(tables),
       tableCount: Object.keys(tables).length,
       timestamp: new Date().toISOString()
