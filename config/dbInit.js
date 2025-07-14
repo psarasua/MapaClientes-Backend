@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { runAllSeeders } from '../seeders/index.js';
 
 // Obtener el directorio actual de manera compatible con diferentes entornos
 const getCurrentDir = () => {
@@ -114,10 +115,20 @@ export const initializeDatabase = async (pool) => {
 
     console.log('✅ Inicialización de base de datos completada exitosamente');
     
+    // Ejecutar seeders automáticamente después de crear las tablas
+    console.log('🌱 Ejecutando seeders automáticos...');
+    try {
+      await runAllSeeders(pool);
+      console.log('✅ Seeders ejecutados exitosamente');
+    } catch (seedError) {
+      console.warn('⚠️  Advertencia: Error ejecutando seeders:', seedError.message);
+      // No lanzar error para no interrumpir la inicialización
+    }
+    
     return {
       success: true,
       tables: tables,
-      message: 'Base de datos inicializada correctamente'
+      message: 'Base de datos inicializada correctamente con datos de ejemplo'
     };
 
   } catch (error) {
