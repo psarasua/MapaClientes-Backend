@@ -84,19 +84,26 @@ const initDB = async () => {
     try {
       console.log('🚀 Iniciando verificación de base de datos...');
       console.log('🔗 DATABASE_URL configurada:', process.env.DATABASE_URL ? 'Sí' : 'No (usando fallback)');
+      console.log('🔗 String de conexión:', process.env.DATABASE_URL ? '[CONFIGURADO]' : '[USANDO FALLBACK]');
       
       // Verificar conexión primero
+      console.log('⏳ Intentando conectar a PostgreSQL...');
       const client = await pool.connect();
       console.log('✅ Conexión a PostgreSQL establecida');
       client.release();
       
       // Inicializar tablas
+      console.log('⏳ Iniciando creación/verificación de tablas...');
       await initializeDatabase(pool);
+      
       dbInitialized = true;
       dbInitError = null;
       console.log('✅ Base de datos inicializada correctamente');
     } catch (error) {
       console.error('❌ Error inicializando la base de datos:', error);
+      console.error('❌ Stack trace:', error.stack);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error details:', error.detail);
       dbInitError = error;
       // No bloqueamos la aplicación, pero registramos el error
     }
@@ -143,6 +150,313 @@ const errorResponse = (res, message = 'Error en la operación', statusCode = 400
     timestamp: new Date().toISOString()
   });
 };
+
+// Ruta raíz - Página de bienvenida con índice de la API
+app.get('/', async (req, res) => {
+  try {
+    // Verificar estado de la base de datos
+    let dbStatus = '🔴 Desconectada';
+    let dbDetails = '';
+    let dbInitStatus = '🔴 No inicializada';
+    
+    try {
+      const dbStart = Date.now();
+      await pool.query('SELECT 1');
+      const dbTime = Date.now() - dbStart;
+      dbStatus = '🟢 Conectada';
+      dbDetails = `(${dbTime}ms)`;
+    } catch (error) {
+      dbStatus = '🔴 Error de conexión';
+      dbDetails = `(${error.message})`;
+    }
+    
+    if (dbInitialized) {
+      dbInitStatus = '🟢 Inicializada correctamente';
+    } else if (dbInitError) {
+      dbInitStatus = `🔴 Error: ${dbInitError.message}`;
+    }
+    
+    // Verificar variables de entorno
+    const envStatus = {
+      DATABASE_URL: process.env.DATABASE_URL ? '🟢 Configurada' : '🔴 No configurada',
+      NODE_ENV: process.env.NODE_ENV ? `🟢 ${process.env.NODE_ENV}` : '🟡 No definida',
+      CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)'
+    };
+    
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapaClientes API - Documentación</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+        .status-section {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .status-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .endpoint {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .get { background: #d4edda; color: #155724; }
+        .post { background: #d1ecf1; color: #0c5460; }
+        .put { background: #fff3cd; color: #856404; }
+        .delete { background: #f8d7da; color: #721c24; }
+        .url {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .description {
+            margin-top: 8px;
+            color: #6c757d;
+        }
+        .test-buttons {
+            margin-top: 15px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ MapaClientes API</h1>
+        
+        <div class="status-section">
+            <h2>📊 Estado del Sistema</h2>
+            <div class="status-grid">
+                <div class="status-card">
+                    <h3>🔗 Base de Datos</h3>
+                    <p><strong>Conexión:</strong> ${dbStatus} ${dbDetails}</p>
+                    <p><strong>Inicialización:</strong> ${dbInitStatus}</p>
+                </div>
+                <div class="status-card">
+                    <h3>🔧 Variables de Entorno</h3>
+                    <p><strong>DATABASE_URL:</strong> ${envStatus.DATABASE_URL}</p>
+                    <p><strong>NODE_ENV:</strong> ${envStatus.NODE_ENV}</p>
+                    <p><strong>CORS_ORIGIN:</strong> ${envStatus.CORS_ORIGIN}</p>
+                </div>
+            </div>
+        </div>
+
+        <h2>🚀 Endpoints Disponibles</h2>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="url">/api</span>
+            <div class="description">Información general de la API y lista de endpoints disponibles</div>
+            <div class="test-buttons">
+                <a href="/api" class="test-button">Probar</a>
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="url">/api/ping</span>
+            <div class="description">Health check rápido con información de base de datos</div>
+            <div class="test-buttons">
+                <a href="/api/ping" class="test-button">Probar</a>
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="url">/api/health</span>
+            <div class="description">Health check completo del sistema (memoria, BD, servicios)</div>
+            <div class="test-buttons">
+                <a href="/api/health" class="test-button">Probar</a>
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="url">/api/env</span>
+            <div class="description">Verificar configuración de variables de entorno</div>
+            <div class="test-buttons">
+                <a href="/api/env" class="test-button">Probar</a>
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="url">/api/database</span>
+            <div class="description">Información detallada de la base de datos y tablas</div>
+            <div class="test-buttons">
+                <a href="/api/database" class="test-button">Probar</a>
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="url">/api/database/reinit</span>
+            <div class="description">Reinicializar la base de datos (crear tablas si no existen)</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="url">/api/init</span>
+            <div class="description">Reintentar inicialización de la base de datos</div>
+        </div>
+
+        <h2>👥 Gestión de Clientes</h2>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="url">/api/clientes</span>
+            <div class="description">
+                Obtener lista de clientes con paginación y filtros
+                <br><strong>Parámetros:</strong> page, limit, search, activo
+            </div>
+            <div class="test-buttons">
+                <a href="/api/clientes" class="test-button">Probar</a>
+                <a href="/api/clientes?page=1&limit=5" class="test-button">Con paginación</a>
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="url">/api/clientes/:id</span>
+            <div class="description">Obtener información de un cliente específico por ID</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="url">/api/clientes</span>
+            <div class="description">
+                Crear un nuevo cliente
+                <br><strong>Campos requeridos:</strong> nombre
+                <br><strong>Campos opcionales:</strong> codigo_alternativo, razon, direccion, telefono, rut, activo, x, y
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method put">PUT</span>
+            <span class="url">/api/clientes/:id</span>
+            <div class="description">Actualizar completamente un cliente existente</div>
+        </div>
+
+        <div class="endpoint">
+            <span class="method delete">DELETE</span>
+            <span class="url">/api/clientes/:id</span>
+            <div class="description">Eliminar un cliente por ID</div>
+        </div>
+
+        <h2>📋 Ejemplo de Cliente</h2>
+        <pre style="background: #f8f9fa; padding: 15px; border-radius: 8px; overflow-x: auto;">
+{
+  "nombre": "Empresa ABC",
+  "codigo_alternativo": "ABC001",
+  "razon": "Empresa ABC S.A.",
+  "direccion": "Av. Principal 123",
+  "telefono": "+56912345678",
+  "rut": "12.345.678-9",
+  "activo": true,
+  "x": -33.4489,
+  "y": -70.6693
+}
+        </pre>
+
+        <h2>🔍 Herramientas de Diagnóstico</h2>
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 8px;">
+            <p><strong>Para diagnosticar problemas:</strong></p>
+            <ul>
+                <li>Verificar <a href="/api/env">variables de entorno</a></li>
+                <li>Comprobar <a href="/api/database">estado de la base de datos</a></li>
+                <li>Realizar <a href="/api/health">health check completo</a></li>
+                <li>Probar conexión con <a href="/api/ping">ping</a></li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>MapaClientes API v1.0.0 | ${new Date().toISOString()} | Netlify Functions</p>
+        </div>
+    </div>
+</body>
+</html>
+    `;
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('❌ Error en ruta raíz:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 // Ruta principal con información de la API
 app.get('/api', (req, res) => {
@@ -246,6 +560,36 @@ app.get('/api/env', (req, res) => {
   } catch (error) {
     console.error('❌ Error verificando variables de entorno:', error);
     errorResponse(res, 'Error verificando configuración', 500, error.message);
+  }
+});
+
+// RUTA INIT - Reintentar inicialización de la base de datos
+app.post('/api/init', async (req, res) => {
+  try {
+    console.log('🔄 Reintentando inicialización de base de datos...');
+    
+    // Resetear estado
+    dbInitialized = false;
+    dbInitError = null;
+    
+    // Intentar inicializar nuevamente
+    await initDB();
+    
+    if (dbInitialized) {
+      successResponse(res, { 
+        initialized: true, 
+        timestamp: new Date().toISOString() 
+      }, '✅ Base de datos inicializada exitosamente');
+    } else {
+      errorResponse(res, 'Error en la inicialización', 500, {
+        error: dbInitError ? dbInitError.message : 'Error desconocido',
+        errorCode: dbInitError ? dbInitError.code : null,
+        errorDetail: dbInitError ? dbInitError.detail : null
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error reintentando inicialización:', error);
+    errorResponse(res, 'Error reintentando inicialización', 500, error.message);
   }
 });
 
@@ -526,8 +870,11 @@ app.get('/api/database', async (req, res) => {
     if (!dbInitialized) {
       return errorResponse(res, 'Base de datos no inicializada', 503, {
         error: dbInitError ? dbInitError.message : 'Error desconocido',
+        errorCode: dbInitError ? dbInitError.code : null,
+        errorDetail: dbInitError ? dbInitError.detail : null,
         hasDatabaseUrl: !!process.env.DATABASE_URL,
-        connectionString: process.env.DATABASE_URL ? '[CONFIGURADO]' : '[USANDO FALLBACK]'
+        connectionString: process.env.DATABASE_URL ? '[CONFIGURADO]' : '[USANDO FALLBACK]',
+        timestamp: new Date().toISOString()
       });
     }
 
