@@ -417,7 +417,67 @@ app.get('/', async (req, res) => {
             <div class="description">Eliminar un cliente por ID</div>
         </div>
 
-        <h2>📋 Ejemplo de Cliente</h2>
+        <h2>� Gestión de Camiones</h2>
+
+        <div class="endpoint-grid">
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/camiones</div>
+                <div class="description">
+                    <strong>Obtener lista de camiones</strong><br>
+                    Soporta paginación y filtros: page, limit, search
+                </div>
+                <div class="test-buttons">
+                    <a href="/api/camiones" class="test-button">Probar</a>
+                    <a href="/api/camiones?page=1&limit=5" class="test-button">Con filtros</a>
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/camiones/:id</div>
+                <div class="description">
+                    <strong>Obtener camión específico</strong><br>
+                    Devuelve información completa de un camión por su ID.
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method post">POST</div>
+                <div class="url">/api/camiones</div>
+                <div class="description">
+                    <strong>Crear nuevo camión</strong><br>
+                    Campos requeridos: descripcion
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method put">PUT</div>
+                <div class="url">/api/camiones/:id</div>
+                <div class="description">
+                    <strong>Actualizar camión</strong><br>
+                    Actualiza completamente la información de un camión existente.
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method delete">DELETE</div>
+                <div class="url">/api/camiones/:id</div>
+                <div class="description">
+                    <strong>Eliminar camión</strong><br>
+                    Elimina permanentemente un camión de la base de datos.
+                </div>
+            </div>
+        </div>
+
+        <h2>📋 Ejemplo de Camión</h2>
+        <pre style="background: #f8f9fa; padding: 15px; border-radius: 8px; overflow-x: auto;">
+{
+  "descripcion": "Camión de Reparto Norte"
+}
+        </pre>
+
+        <h2>�📋 Ejemplo de Cliente</h2>
         <pre style="background: #f8f9fa; padding: 15px; border-radius: 8px; overflow-x: auto;">
 {
   "nombre": "Empresa ABC",
@@ -1154,6 +1214,51 @@ app.get('/api', async (req, res) => {
 
             <div class="endpoint-card">
                 <div class="method get">GET</div>
+                <div class="url">/api/camiones</div>
+                <div class="description">
+                    <strong>Obtener lista de camiones</strong><br>
+                    Soporta paginación y filtros: page, limit, search
+                </div>
+                <div class="test-buttons">
+                    <a href="/api/camiones" class="test-button">Probar</a>
+                    <a href="/api/camiones?page=1&limit=5" class="test-button">Con filtros</a> 
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/camiones/:id</div>
+                <div class="description">
+                    <strong>Obtener camión específico</strong><br>
+                    Devuelve información completa de un camión por su ID.
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method post">POST</div>
+                <div class="url">/api/camiones</div>
+                <div class="description">
+                    <strong>Crear nuevo camión</strong><br>
+                    Campos requeridos: descripcion<br>
+                    Ejemplo: {"descripcion": "Camión Repartidor 1"}
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method put">PUT</div>
+                <div class="url">/api/camiones/:id</div>
+                <div class="description">
+                    <strong>Actualizar camión</strong><br>
+                    Actualiza completamente la información de un camión existente.
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method delete">DELETE</div>
+                <div class="url">/api/camiones/:id</div>
+                <div class="description">
+                    <strong>Eliminar camión</strong><br>
+                    Elimina permanentemente un camión de la base de datos.
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
                 <div class="url">/api/database</div>
                 <div class="description">
                     <strong>Información de la base de datos</strong><br>
@@ -1177,6 +1282,13 @@ app.get('/api', async (req, res) => {
   "activo": true,
   "x": -33.4489,
   "y": -70.6693
+}
+        </div>
+        
+        <h2>🚛 Ejemplo de Camión</h2>
+        <div class="code-block">
+{
+  "descripcion": "Camión Repartidor 1"
 }
         </div>
 
@@ -1728,6 +1840,240 @@ app.delete('/api/clientes/:id', async (req, res) => {
   } catch (error) {
     console.error('❌ Error al eliminar cliente:', error);
     errorResponse(res, 'Error al eliminar cliente', 500, error.message);
+  }
+});
+
+// RUTAS DE CAMIONES
+
+// Validación de camión
+const validateCamion = (camion) => {
+  const errors = [];
+  if (!camion.descripcion || camion.descripcion.trim().length === 0) {
+    errors.push('La descripción es requerida');
+  }
+  if (camion.descripcion && camion.descripcion.length > 100) {
+    errors.push('La descripción no puede exceder 100 caracteres');
+  }
+  return errors;
+};
+
+// GET /api/camiones - Obtener todos los camiones con paginación
+app.get('/api/camiones', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const offset = (page - 1) * limit;
+
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+    let paramCount = 0;
+
+    if (search) {
+      paramCount++;
+      whereClause += ` AND descripcion ILIKE $${paramCount}`;
+      params.push(`%${search}%`);
+    }
+
+    const countQuery = `SELECT COUNT(*) FROM camiones ${whereClause}`;
+    const countResult = await pool.query(countQuery, params);
+    const total = parseInt(countResult.rows[0].count);
+
+    paramCount++;
+    const limitParam = paramCount;
+    paramCount++;
+    const offsetParam = paramCount;
+
+    const query = `
+      SELECT id, descripcion
+      FROM camiones 
+      ${whereClause}
+      ORDER BY descripcion ASC
+      LIMIT $${limitParam} OFFSET $${offsetParam}
+    `;
+
+    params.push(limit, offset);
+    const result = await pool.query(query, params);
+
+    const totalPages = Math.ceil(total / limit);
+
+    const response = {
+      data: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: parseInt(total),
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    };
+
+    successResponse(res, response, 'Camiones obtenidos exitosamente');
+  } catch (error) {
+    console.error('❌ Error al obtener camiones:', error);
+    errorResponse(res, 'Error al obtener camiones', 500, error.message);
+  }
+});
+
+// GET /api/camiones/:id - Obtener camión por ID
+app.get('/api/camiones/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(id)) {
+      return errorResponse(res, 'ID de camión inválido', 400);
+    }
+
+    const query = 'SELECT * FROM camiones WHERE id = $1';
+    const result = await pool.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return errorResponse(res, 'Camión no encontrado', 404);
+    }
+
+    successResponse(res, result.rows[0], 'Camión obtenido exitosamente');
+  } catch (error) {
+    console.error('❌ Error al obtener camión:', error);
+    errorResponse(res, 'Error al obtener camión', 500, error.message);
+  }
+});
+
+// POST /api/camiones - Crear nuevo camión
+app.post('/api/camiones', async (req, res) => {
+  try {
+    let camionData = req.body;
+
+    // Si el cuerpo viene como buffer, parsearlo
+    if (Buffer.isBuffer(camionData)) {
+      try {
+        camionData = JSON.parse(camionData.toString());
+      } catch (parseError) {
+        return errorResponse(res, 'Formato JSON inválido', 400, parseError.message);
+      }
+    }
+
+    console.log('📝 Datos recibidos para crear camión:', camionData);
+
+    const validationErrors = validateCamion(camionData);
+    console.log('🔍 Errores de validación:', validationErrors);
+
+    if (validationErrors.length > 0) {
+      return errorResponse(res, 'Datos de camión inválidos', 400, validationErrors);
+    }
+
+    const { descripcion } = camionData;
+    console.log('🚛 Descripción extraída:', descripcion);
+
+    const query = `
+      INSERT INTO camiones (descripcion)
+      VALUES ($1)
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, [descripcion]);
+
+    successResponse(res, result.rows[0], 'Camión creado exitosamente', 201);
+  } catch (error) {
+    console.error('❌ Error al crear camión:', error);
+
+    if (error.code === '23505') {
+      return errorResponse(res, 'Ya existe un camión con esa descripción', 409);
+    }
+
+    errorResponse(res, 'Error al crear camión', 500, error.message);
+  }
+});
+
+// PUT /api/camiones/:id - Actualizar camión completo
+app.put('/api/camiones/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let camionData = req.body;
+
+    if (!id || isNaN(id)) {
+      return errorResponse(res, 'ID de camión inválido', 400);
+    }
+
+    // Si el cuerpo viene como buffer, parsearlo
+    if (Buffer.isBuffer(camionData)) {
+      try {
+        camionData = JSON.parse(camionData.toString());
+      } catch (parseError) {
+        return errorResponse(res, 'Formato JSON inválido', 400, parseError.message);
+      }
+    }
+
+    const validationErrors = validateCamion(camionData);
+    if (validationErrors.length > 0) {
+      return errorResponse(res, 'Datos de camión inválidos', 400, validationErrors);
+    }
+
+    const { descripcion } = camionData;
+
+    const query = `
+      UPDATE camiones 
+      SET descripcion = $1
+      WHERE id = $2
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, [descripcion, id]);
+
+    if (result.rows.length === 0) {
+      return errorResponse(res, 'Camión no encontrado', 404);
+    }
+
+    successResponse(res, result.rows[0], 'Camión actualizado exitosamente');
+  } catch (error) {
+    console.error('❌ Error al actualizar camión:', error);
+
+    if (error.code === '23505') {
+      return errorResponse(res, 'Ya existe un camión con esa descripción', 409);
+    }
+
+    errorResponse(res, 'Error al actualizar camión', 500, error.message);
+  }
+});
+
+// DELETE /api/camiones/:id - Eliminar camión
+app.delete('/api/camiones/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(id)) {
+      return errorResponse(res, 'ID de camión inválido', 400);
+    }
+
+    // Verificar si el camión está siendo usado en otras tablas
+    const checkUsageQuery = `
+      SELECT COUNT(*) as count 
+      FROM camiones_dias 
+      WHERE camion_id = $1
+    `;
+
+    const usageResult = await pool.query(checkUsageQuery, [id]);
+
+    if (usageResult.rows[0].count > 0) {
+      return errorResponse(res, 'No se puede eliminar el camión porque está siendo usado en asignaciones de días', 400);
+    }
+
+    const query = 'DELETE FROM camiones WHERE id = $1 RETURNING *';
+    const result = await pool.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return errorResponse(res, 'Camión no encontrado', 404);
+    }
+
+    successResponse(res, result.rows[0], 'Camión eliminado exitosamente');
+  } catch (error) {
+    console.error('❌ Error al eliminar camión:', error);
+
+    if (error.code === '23503') {
+      return errorResponse(res, 'No se puede eliminar el camión porque está siendo usado en otras tablas', 400);
+    }
+
+    errorResponse(res, 'Error al eliminar camión', 500, error.message);
   }
 });
 
