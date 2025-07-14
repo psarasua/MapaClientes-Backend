@@ -491,24 +491,152 @@ app.get('/api', async (req, res) => {
       CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)'
     };
     
-    // Obtener información de las tablas
+    // Obtener información detallada de la base de datos
+    let dbInfo = {
+      connected: false,
+      version: 'Desconocida',
+      size: 'Desconocido',
+      tables: [],
+      totalTables: 0,
+      totalColumns: 0,
+      connectionPool: {
+        totalConnections: 0,
+        idleConnections: 0,
+        waitingClients: 0
+      }
+    };
+    
     let tableInfo = '';
+    let detailedDbInfo = '';
+    
     try {
       if (dbInitialized) {
-        const tablesQuery = await pool.query(`
-          SELECT table_name, 
-                 (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
-          FROM information_schema.tables t
-          WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-          ORDER BY table_name
+        // Información básica de la base de datos
+        const versionQuery = await pool.query('SELECT version() as version');
+        const sizeQuery = await pool.query(`
+          SELECT 
+            pg_database.datname,
+            pg_size_pretty(pg_database_size(pg_database.datname)) as size
+          FROM pg_database 
+          WHERE datname = current_database()
         `);
         
-        tableInfo = tablesQuery.rows.map(row => 
-          `<tr><td>${row.table_name}</td><td>${row.column_count} columnas</td></tr>`
+        dbInfo.version = versionQuery.rows[0].version;
+        dbInfo.size = sizeQuery.rows[0].size;
+        dbInfo.connected = true;
+        
+        // Información del pool de conexiones
+        dbInfo.connectionPool = {
+          totalConnections: pool.totalCount,
+          idleConnections: pool.idleCount,
+          waitingClients: pool.waitingCount
+        };
+        
+        // Información detallada de las tablas con columnas
+        const tablesDetailQuery = await pool.query(`
+          SELECT 
+            t.table_name,
+            t.table_type,
+            c.column_name,
+            c.data_type,
+            c.is_nullable,
+            c.column_default,
+            c.ordinal_position,
+            (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as total_columns
+          FROM information_schema.tables t
+          LEFT JOIN information_schema.columns c ON t.table_name = c.table_name
+          WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+          ORDER BY t.table_name, c.ordinal_position
+        `);
+        
+        // Organizar información por tabla
+        const tablesMap = {};
+        tablesDetailQuery.rows.forEach(row => {
+          if (!tablesMap[row.table_name]) {
+            tablesMap[row.table_name] = {
+              name: row.table_name,
+              type: row.table_type,
+              totalColumns: row.total_columns,
+              columns: []
+            };
+          }
+          
+          if (row.column_name) {
+            tablesMap[row.table_name].columns.push({
+              name: row.column_name,
+              type: row.data_type,
+              nullable: row.is_nullable === 'YES',
+              default: row.column_default,
+              position: row.ordinal_position
+            });
+          }
+        });
+        
+        dbInfo.tables = Object.values(tablesMap);
+        dbInfo.totalTables = Object.keys(tablesMap).length;
+        dbInfo.totalColumns = tablesDetailQuery.rows.length;
+        
+        // Generar HTML para tabla simple
+        tableInfo = Object.values(tablesMap).map(table => 
+          `<tr><td>${table.name}</td><td>${table.totalColumns} columnas</td></tr>`
         ).join('');
+        
+        // Generar HTML detallado de la base de datos
+        detailedDbInfo = `
+          <div class="db-info-section">
+            <h3>🏛️ Información de la Base de Datos</h3>
+            <div class="db-grid">
+              <div class="db-info-card">
+                <h4>📊 Estadísticas Generales</h4>
+                <div class="info-item"><strong>Tipo:</strong> PostgreSQL</div>
+                <div class="info-item"><strong>Versión:</strong> ${dbInfo.version.split(' ')[0]} ${dbInfo.version.split(' ')[1]}</div>
+                <div class="info-item"><strong>Tamaño BD:</strong> ${dbInfo.size}</div>
+                <div class="info-item"><strong>Total Tablas:</strong> ${dbInfo.totalTables}</div>
+                <div class="info-item"><strong>Total Columnas:</strong> ${dbInfo.totalColumns}</div>
+              </div>
+              
+              <div class="db-info-card">
+                <h4>🔗 Pool de Conexiones</h4>
+                <div class="info-item"><strong>Conexiones Totales:</strong> ${dbInfo.connectionPool.totalConnections}</div>
+                <div class="info-item"><strong>Conexiones Inactivas:</strong> ${dbInfo.connectionPool.idleConnections}</div>
+                <div class="info-item"><strong>Clientes Esperando:</strong> ${dbInfo.connectionPool.waitingClients}</div>
+                <div class="info-item"><strong>Tiempo Respuesta:</strong> ${dbResponseTime}ms</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="tables-detail-section">
+            <h3>📋 Estructura Detallada de Tablas</h3>
+            ${Object.values(tablesMap).map(table => `
+              <div class="table-detail-card">
+                <h4>📄 ${table.name}</h4>
+                <div class="table-meta">
+                  <span class="badge">Tipo: ${table.type}</span>
+                  <span class="badge">Columnas: ${table.totalColumns}</span>
+                </div>
+                <div class="columns-grid">
+                  ${table.columns.map(col => `
+                    <div class="column-item">
+                      <strong>${col.name}</strong>
+                      <span class="column-type">${col.type}</span>
+                      ${col.nullable ? '<span class="nullable">NULL</span>' : '<span class="not-null">NOT NULL</span>'}
+                      ${col.default ? `<span class="default">Default: ${col.default}</span>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        
       }
     } catch (error) {
       tableInfo = '<tr><td colspan="2">Error obteniendo información de tablas</td></tr>';
+      detailedDbInfo = `
+        <div class="alert alert-danger">
+          <strong>❌ Error obteniendo información de BD:</strong> ${error.message}
+        </div>
+      `;
     }
     
     const html = `
@@ -726,6 +854,120 @@ app.get('/api', async (req, res) => {
             border-color: #f39c12;
             color: #856404;
         }
+        .db-info-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 2px solid #17a2b8;
+        }
+        .db-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .db-info-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .db-info-card h4 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        .info-item {
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .tables-detail-section {
+            margin: 30px 0;
+        }
+        .table-detail-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .table-detail-card h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .table-meta {
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .badge {
+            background: #6c757d;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .columns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .column-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+        .column-item strong {
+            display: block;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .column-type {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: monospace;
+            margin-right: 5px;
+        }
+        .nullable {
+            background: #ffc107;
+            color: #856404;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+        .not-null {
+            background: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+        .default {
+            background: #17a2b8;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            display: block;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -761,8 +1003,8 @@ app.get('/api', async (req, res) => {
         </div>
 
         <div class="test-section">
-            <h3>🧪 Pruebas de Conexión</h3>
-            <p>Utiliza estos botones para probar la conectividad y funcionalidad:</p>
+            <h3>🧪 Pruebas de Conexión y Diagnóstico</h3>
+            <p>Utiliza estos botones para probar la conectividad, funcionalidad y obtener información detallada:</p>
             <div class="test-buttons">
                 <a href="/api/ping" class="test-button success">🏓 Ping DB</a>
                 <a href="/api/health" class="test-button">🏥 Health Check</a>
@@ -770,9 +1012,12 @@ app.get('/api', async (req, res) => {
                 <a href="/api/database" class="test-button">📊 Info DB</a>
                 <button onclick="testConnection()" class="test-button">🔄 Test Conexión</button>
                 <button onclick="reinitDB()" class="test-button danger">🔁 Reinicializar DB</button>
+                <button onclick="refreshDbInfo()" class="test-button">🔄 Actualizar Info</button>
             </div>
             <div id="testResult"></div>
         </div>
+
+        ${detailedDbInfo}
 
         ${tableInfo ? `
         <div class="table-container">
@@ -988,6 +1233,23 @@ app.get('/api', async (req, res) => {
             
             button.textContent = originalText;
             button.disabled = false;
+        }
+
+        async function refreshDbInfo() {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '🔄 Actualizando...';
+            button.disabled = true;
+            
+            try {
+                // Simplemente recargar la página para obtener información actualizada
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
+            } catch (error) {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
         }
     </script>
 </body>
