@@ -3,18 +3,23 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Obtener el directorio actual de manera compatible
+// Obtener el directorio actual de manera compatible con diferentes entornos
 const getCurrentDir = () => {
   try {
-    const __filename = fileURLToPath(import.meta.url);
-    return path.dirname(__filename);
+    // Intentar usar import.meta.url si está disponible
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+      const __filename = fileURLToPath(import.meta.url);
+      return path.dirname(__filename);
+    }
   } catch (error) {
-    // Fallback para entornos que no soportan import.meta.url
-    return process.cwd();
+    // Silenciar el error y usar fallback
   }
+  
+  // Fallback para entornos que no soportan import.meta.url
+  return process.cwd();
 };
 
-const __dirname = getCurrentDir();
+const currentDir = getCurrentDir();
 
 /**
  * Inicializa la base de datos creando las tablas si no existen
@@ -33,7 +38,7 @@ export const initializeDatabase = async (pool) => {
     ];
 
     // Ruta al directorio de esquemas - buscar en múltiples ubicaciones
-    let schemaDir = path.join(__dirname, '..', 'schema');
+    let schemaDir = path.join(currentDir, '..', 'schema');
     
     // Si no existe, intentar desde la raíz del proyecto
     if (!fs.existsSync(schemaDir)) {
@@ -43,8 +48,8 @@ export const initializeDatabase = async (pool) => {
     // Si aún no existe, intentar ubicaciones alternativas
     if (!fs.existsSync(schemaDir)) {
       const alternativePaths = [
-        path.join(__dirname, '..', '..', 'schema'),
-        path.join(__dirname, 'schema'),
+        path.join(currentDir, '..', '..', 'schema'),
+        path.join(currentDir, 'schema'),
         path.resolve('./schema')
       ];
       
