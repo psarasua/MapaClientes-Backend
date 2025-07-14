@@ -1700,7 +1700,7 @@ app.get('/api/health', async (req, res) => {
 // Función de validación para días de entrega
 function validateDiaEntrega(diaData) {
   const errors = [];
-  
+
   if (!diaData || typeof diaData !== 'object') {
     errors.push('Los datos del día son requeridos');
     return errors;
@@ -1788,7 +1788,7 @@ app.get('/api/dias-entrega/:id', async (req, res) => {
 app.post('/api/dias-entrega', async (req, res) => {
   try {
     let diaData = req.body;
-    
+
     // Si el cuerpo viene como buffer, parsearlo
     if (Buffer.isBuffer(diaData)) {
       try {
@@ -1797,12 +1797,12 @@ app.post('/api/dias-entrega', async (req, res) => {
         return errorResponse(res, 'Formato JSON inválido', 400, parseError.message);
       }
     }
-    
+
     console.log('📝 Datos recibidos para crear día de entrega:', diaData);
-    
+
     const validationErrors = validateDiaEntrega(diaData);
     console.log('🔍 Errores de validación:', validationErrors);
-    
+
     if (validationErrors.length > 0) {
       return errorResponse(res, 'Datos de día de entrega inválidos', 400, validationErrors);
     }
@@ -1821,17 +1821,17 @@ app.post('/api/dias-entrega', async (req, res) => {
     successResponse(res, result.rows[0], 'Día de entrega creado exitosamente', 201);
   } catch (error) {
     console.error('❌ Error al crear día de entrega:', error);
-    
+
     // Error de clave única (PostgreSQL)
     if (error.code === '23505') {
       return errorResponse(res, 'Ya existe un día de entrega con esa descripción', 409);
     }
-    
+
     // Error de violación de restricción NOT NULL
     if (error.code === '23502') {
       return errorResponse(res, 'Faltan campos requeridos', 400);
     }
-    
+
     errorResponse(res, 'Error al crear día de entrega', 500, error.message);
   }
 });
@@ -1878,11 +1878,11 @@ app.put('/api/dias-entrega/:id', async (req, res) => {
     successResponse(res, result.rows[0], 'Día de entrega actualizado exitosamente');
   } catch (error) {
     console.error('❌ Error al actualizar día de entrega:', error);
-    
+
     if (error.code === '23505') {
       return errorResponse(res, 'Ya existe un día de entrega con esa descripción', 409);
     }
-    
+
     errorResponse(res, 'Error al actualizar día de entrega', 500, error.message);
   }
 });
