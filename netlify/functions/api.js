@@ -1928,6 +1928,70 @@ app.delete('/api/dias-entrega/:id', async (req, res) => {
   }
 });
 
+// =============================================================================
+// ENDPOINTS DE SEEDERS
+// =============================================================================
+
+// RUTA SEEDERS - Ejecutar todos los seeders
+app.post('/api/seeders', async (req, res) => {
+  try {
+    console.log('🌱 Ejecutando todos los seeders...');
+
+    // Ejecutar seeder de camiones pasando el pool de conexiones
+    const camionesResult = await seedCamiones(pool);
+    
+    // Ejecutar seeder de días de entrega pasando el pool de conexiones
+    const diasResult = await seedDiasEntrega(pool);
+
+    successResponse(res, {
+      seeders: ['camiones', 'dias_entrega'],
+      camiones: camionesResult,
+      dias_entrega: diasResult,
+      message: 'Todos los seeders ejecutados correctamente'
+    }, '✅ Todos los seeders ejecutados exitosamente');
+  } catch (error) {
+    console.error('❌ Error ejecutando seeders:', error);
+    errorResponse(res, 'Error ejecutando seeders', 500, error.message);
+  }
+});
+
+// RUTA SEEDERS CAMIONES - Ejecutar solo seeder de camiones
+app.post('/api/seeders/camiones', async (req, res) => {
+  try {
+    console.log('🚛 Ejecutando seeder de camiones...');
+
+    // Ejecutar seeder de camiones pasando el pool de conexiones
+    const result = await seedCamiones(pool);
+
+    successResponse(res, {
+      camiones: result,
+      message: 'Seeder de camiones ejecutado correctamente'
+    }, '✅ Seeder de camiones ejecutado exitosamente');
+  } catch (error) {
+    console.error('❌ Error ejecutando seeder de camiones:', error);
+    errorResponse(res, 'Error ejecutando seeder de camiones', 500, error.message);
+  }
+});
+
+// RUTA SEEDERS DIAS_ENTREGA - Ejecutar solo seeder de días de entrega
+app.post('/api/seeders/dias', async (req, res) => {
+  try {
+    console.log('🗓️ Ejecutando seeder de días de entrega...');
+
+    // Ejecutar seeder de días de entrega pasando el pool de conexiones
+    const result = await seedDiasEntrega(pool);
+
+    successResponse(res, {
+      dias_entrega: result,
+      message: 'Seeder de días de entrega ejecutado correctamente'
+    }, '✅ Seeder de días de entrega ejecutado exitosamente');
+  } catch (error) {
+    console.error('❌ Error ejecutando seeder de días de entrega:', error);
+    errorResponse(res, 'Error ejecutando seeder de días de entrega', 500, error.message);
+  }
+});
+
+
 // Middleware de manejo de rutas no encontradas
 app.use((req, res) => {
   errorResponse(res, `La ruta ${req.originalUrl} no existe`, 404);
