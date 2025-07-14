@@ -13,6 +13,14 @@ export async function seedCamiones(externalPool = null) {
   try {
     console.log('🚀 Iniciando seed de camiones...');
 
+    // Limpiar tabla existente
+    await pool.query('DELETE FROM camiones');
+    console.log('🧹 Tabla camiones limpiada');
+
+    // Reiniciar secuencia
+    await pool.query('ALTER SEQUENCE camiones_id_seq RESTART WITH 1');
+    console.log('🔄 Secuencia reiniciada');
+
     const camiones = [
       'Daniel Torres',
       'Alvaro Garcia',
@@ -21,26 +29,27 @@ export async function seedCamiones(externalPool = null) {
       'Reparto Nuevo'
     ];
 
+    const insertedCamiones = [];
+
     for (const descripcion of camiones) {
-      await pool.query(
-        'INSERT INTO camiones (descripcion) VALUES ($1) ON CONFLICT DO NOTHING',
+      const result = await pool.query(
+        'INSERT INTO camiones (descripcion) VALUES ($1) RETURNING *',
         [descripcion]
       );
+      insertedCamiones.push(result.rows[0]);
+      console.log(`✅ Camión insertado: ${descripcion}`);
     }
 
-    console.log('✅ Seed de camiones completado');
-
-    // Verificar los datos insertados
-    const result = await pool.query('SELECT * FROM camiones ORDER BY id');
-    console.log('📋 Camiones en la base de datos:');
-    result.rows.forEach(camion => {
-      console.log(`  ${camion.id} - ${camion.descripcion}`);
-    });
-
-    return result.rows;
+    console.log(`🎉 Seed de camiones completado: ${insertedCamiones.length} registros insertados`);
+    return insertedCamiones;
   } catch (error) {
     console.error('❌ Error en seed de camiones:', error);
     throw error;
+  } finally {
+    // Solo cerrar el pool si no es externo
+    if (!externalPool) {
+      await pool.end();
+    }
   }
 }
 
