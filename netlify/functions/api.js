@@ -459,35 +459,547 @@ app.get('/', async (req, res) => {
 });
 
 // Ruta principal con información de la API
-app.get('/api', (req, res) => {
-  const apiInfo = {
-    name: 'MapaClientes API',
-    version: '1.0.0',
-    description: 'API robusta para gestión de clientes con geolocalización',
-    environment: process.env.NODE_ENV || 'production',
-    database: {
-      initialized: dbInitialized,
-      autoInit: true
-    },
-    endpoints: {
-      ping: '/api/ping',
-      health: '/api/health',
-      env: '/api/env',
-      database: {
-        info: '/api/database',
-        reinit: '/api/database/reinit (POST)'
-      },
-      clientes: {
-        base: '/api/clientes',
-        methods: ['GET', 'POST'],
-        byId: '/api/clientes/:id',
-        methodsById: ['GET', 'PUT', 'PATCH', 'DELETE'],
-        ubicacion: '/api/clientes/:id/ubicacion'
-      }
+app.get('/api', async (req, res) => {
+  try {
+    // Verificar estado de la base de datos
+    let dbStatus = '🔴 Desconectada';
+    let dbDetails = '';
+    let dbInitStatus = '🔴 No inicializada';
+    let dbResponseTime = 0;
+    
+    try {
+      const dbStart = Date.now();
+      await pool.query('SELECT 1');
+      dbResponseTime = Date.now() - dbStart;
+      dbStatus = '🟢 Conectada';
+      dbDetails = `${dbResponseTime}ms`;
+    } catch (error) {
+      dbStatus = '🔴 Error de conexión';
+      dbDetails = error.message;
     }
-  };
+    
+    if (dbInitialized) {
+      dbInitStatus = '🟢 Inicializada correctamente';
+    } else if (dbInitError) {
+      dbInitStatus = `🔴 Error: ${dbInitError.message}`;
+    }
+    
+    // Verificar variables de entorno
+    const envStatus = {
+      DATABASE_URL: process.env.DATABASE_URL ? '🟢 Configurada' : '🔴 No configurada',
+      NODE_ENV: process.env.NODE_ENV ? `🟢 ${process.env.NODE_ENV}` : '🟡 No definida',
+      CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)'
+    };
+    
+    // Obtener información de las tablas
+    let tableInfo = '';
+    try {
+      if (dbInitialized) {
+        const tablesQuery = await pool.query(`
+          SELECT table_name, 
+                 (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
+          FROM information_schema.tables t
+          WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+          ORDER BY table_name
+        `);
+        
+        tableInfo = tablesQuery.rows.map(row => 
+          `<tr><td>${row.table_name}</td><td>${row.column_count} columnas</td></tr>`
+        ).join('');
+      }
+    } catch (error) {
+      tableInfo = '<tr><td colspan="2">Error obteniendo información de tablas</td></tr>';
+    }
+    
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapaClientes API - Documentación</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #34495e;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .status-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .status-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-item {
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: #fff;
+            border-left: 4px solid #3498db;
+        }
+        .test-section {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 2px solid #3498db;
+        }
+        .test-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .test-button {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        .test-button.danger {
+            background: #e74c3c;
+        }
+        .test-button.danger:hover {
+            background: #c0392b;
+        }
+        .test-button.success {
+            background: #27ae60;
+        }
+        .test-button.success:hover {
+            background: #219a52;
+        }
+        .endpoint-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .endpoint-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        .endpoint-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .method {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .get { background: #d4edda; color: #155724; }
+        .post { background: #d1ecf1; color: #0c5460; }
+        .put { background: #fff3cd; color: #856404; }
+        .delete { background: #f8d7da; color: #721c24; }
+        .url {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .description {
+            margin-top: 12px;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #dee2e6;
+            color: #6c757d;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid;
+        }
+        .alert-success {
+            background: #d4edda;
+            border-color: #27ae60;
+            color: #155724;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            border-color: #e74c3c;
+            color: #721c24;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #f39c12;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ MapaClientes API</h1>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>🔗 Estado de la Base de Datos</h3>
+                <div class="status-item">
+                    <strong>Conexión:</strong> ${dbStatus} ${dbDetails}
+                </div>
+                <div class="status-item">
+                    <strong>Inicialización:</strong> ${dbInitStatus}
+                </div>
+                <div class="status-item">
+                    <strong>Tiempo de respuesta:</strong> ${dbResponseTime}ms
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <h3>🔧 Variables de Entorno</h3>
+                <div class="status-item">
+                    <strong>DATABASE_URL:</strong> ${envStatus.DATABASE_URL}
+                </div>
+                <div class="status-item">
+                    <strong>NODE_ENV:</strong> ${envStatus.NODE_ENV}
+                </div>
+                <div class="status-item">
+                    <strong>CORS_ORIGIN:</strong> ${envStatus.CORS_ORIGIN}
+                </div>
+            </div>
+        </div>
 
-  successResponse(res, apiInfo, '🚀 API MapaClientes funcionando correctamente');
+        <div class="test-section">
+            <h3>🧪 Pruebas de Conexión</h3>
+            <p>Utiliza estos botones para probar la conectividad y funcionalidad:</p>
+            <div class="test-buttons">
+                <a href="/api/ping" class="test-button success">🏓 Ping DB</a>
+                <a href="/api/health" class="test-button">🏥 Health Check</a>
+                <a href="/api/env" class="test-button">🔧 Variables</a>
+                <a href="/api/database" class="test-button">📊 Info DB</a>
+                <button onclick="testConnection()" class="test-button">🔄 Test Conexión</button>
+                <button onclick="reinitDB()" class="test-button danger">🔁 Reinicializar DB</button>
+            </div>
+            <div id="testResult"></div>
+        </div>
+
+        ${tableInfo ? `
+        <div class="table-container">
+            <h3>📋 Tablas de la Base de Datos</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tabla</th>
+                        <th>Información</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableInfo}
+                </tbody>
+            </table>
+        </div>
+        ` : ''}
+
+        <h2>🚀 Documentación de Endpoints</h2>
+        
+        <div class="endpoint-grid">
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/ping</div>
+                <div class="description">
+                    <strong>Health check rápido</strong><br>
+                    Verifica la conexión a la base de datos y devuelve información del servidor.
+                </div>
+                <div class="test-buttons">
+                    <a href="/api/ping" class="test-button">Probar</a>
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/health</div>
+                <div class="description">
+                    <strong>Health check completo</strong><br>
+                    Información detallada del sistema: memoria, base de datos, uptime.
+                </div>
+                <div class="test-buttons">
+                    <a href="/api/health" class="test-button">Probar</a>
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/clientes</div>
+                <div class="description">
+                    <strong>Obtener lista de clientes</strong><br>
+                    Soporta paginación y filtros: page, limit, search, activo
+                </div>
+                <div class="test-buttons">
+                    <a href="/api/clientes" class="test-button">Probar</a>
+                    <a href="/api/clientes?page=1&limit=5" class="test-button">Con filtros</a>
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/clientes/:id</div>
+                <div class="description">
+                    <strong>Obtener cliente específico</strong><br>
+                    Devuelve información completa de un cliente por su ID.
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method post">POST</div>
+                <div class="url">/api/clientes</div>
+                <div class="description">
+                    <strong>Crear nuevo cliente</strong><br>
+                    Campos requeridos: nombre<br>
+                    Opcionales: codigo_alternativo, razon, direccion, telefono, rut, x, y
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method put">PUT</div>
+                <div class="url">/api/clientes/:id</div>
+                <div class="description">
+                    <strong>Actualizar cliente</strong><br>
+                    Actualiza completamente la información de un cliente existente.
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method delete">DELETE</div>
+                <div class="url">/api/clientes/:id</div>
+                <div class="description">
+                    <strong>Eliminar cliente</strong><br>
+                    Elimina permanentemente un cliente de la base de datos.
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/database</div>
+                <div class="description">
+                    <strong>Información de la base de datos</strong><br>
+                    Estado de tablas, estructura y configuración.
+                </div>
+                <div class="test-buttons">
+                    <a href="/api/database" class="test-button">Probar</a>
+                </div>
+            </div>
+        </div>
+
+        <h2>📋 Ejemplo de Cliente</h2>
+        <div class="code-block">
+{
+  "nombre": "Empresa ABC",
+  "codigo_alternativo": "ABC001",
+  "razon": "Empresa ABC S.A.",
+  "direccion": "Av. Principal 123",
+  "telefono": "+56912345678",
+  "rut": "12.345.678-9",
+  "activo": true,
+  "x": -33.4489,
+  "y": -70.6693
+}
+        </div>
+
+        <div class="footer">
+            <p>MapaClientes API v1.0.0 | ${new Date().toISOString()} | Netlify Functions</p>
+        </div>
+    </div>
+
+    <script>
+        async function testConnection() {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '🔄 Probando...';
+            button.disabled = true;
+            
+            const resultDiv = document.getElementById('testResult');
+            
+            try {
+                const response = await fetch('/api/ping');
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = \`
+                        <div class="alert alert-success">
+                            <strong>✅ Conexión exitosa!</strong><br>
+                            Estado: \${data.data.database.status}<br>
+                            Tiempo: \${data.data.database.responseTime}
+                        </div>
+                    \`;
+                } else {
+                    resultDiv.innerHTML = \`
+                        <div class="alert alert-danger">
+                            <strong>❌ Error de conexión</strong><br>
+                            \${data.error}
+                        </div>
+                    \`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = \`
+                    <div class="alert alert-danger">
+                        <strong>❌ Error de red</strong><br>
+                        \${error.message}
+                    </div>
+                \`;
+            }
+            
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+
+        async function reinitDB() {
+            if (!confirm('¿Estás seguro de que quieres reinicializar la base de datos?')) {
+                return;
+            }
+            
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '🔄 Reinicializando...';
+            button.disabled = true;
+            
+            const resultDiv = document.getElementById('testResult');
+            
+            try {
+                const response = await fetch('/api/database/reinit', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = \`
+                        <div class="alert alert-success">
+                            <strong>✅ Base de datos reinicializada!</strong><br>
+                            \${data.message}
+                        </div>
+                    \`;
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    resultDiv.innerHTML = \`
+                        <div class="alert alert-danger">
+                            <strong>❌ Error reinicializando</strong><br>
+                            \${data.error}
+                        </div>
+                    \`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = \`
+                    <div class="alert alert-danger">
+                        <strong>❌ Error de red</strong><br>
+                        \${error.message}
+                    </div>
+                \`;
+            }
+            
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    </script>
+</body>
+</html>
+    `;
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('❌ Error en documentación API:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 // RUTA PING - Health check con información de base de datos
