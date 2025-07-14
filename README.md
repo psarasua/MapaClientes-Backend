@@ -1,53 +1,120 @@
-# MapaClientes Backend
+# 🗺️ MapaClientes Backend API
 
-API simple para gestión de clientes desplegada en Netlify Functions.
+API robusta y profesional para la gestión de clientes con geolocalización, construida con Express.js y PostgreSQL, desplegada en Netlify Functions.
 
-## 🚀 Estructura del Proyecto
+## 🚀 Características
+
+- ✅ CRUD completo para gestión de clientes
+- 📍 Soporte para coordenadas geográficas (x, y)
+- 🔍 Búsqueda y filtrado avanzado
+- 📄 Paginación de resultados
+- ✨ Validación robusta de datos
+- 🔗 Conexión segura a PostgreSQL (Neon)
+- 📊 Health checks y monitoring
+- 🛡️ Manejo profesional de errores
+- 📝 Logging detallado
+- 🌐 CORS configurado
+- 🔧 Arquitectura modular y escalable
+
+## 🏗️ Arquitectura
 
 ```
 MapaClientes-Backend/
-├── netlify/
-│   └── functions/
-│       └── api.js          # Función principal de Netlify
+├── config/
+│   └── database.js         # Configuración de PostgreSQL
+├── middleware/
+│   ├── errorHandler.js     # Manejo centralizado de errores
+│   └── logger.js          # Middleware de logging
 ├── routes/
-│   ├── clientes.js         # Rutas para clientes
-│   └── ping.js            # Endpoint de health check
-├── schema/                 # Esquemas SQL para futura BD
-├── netlify.toml           # Configuración de Netlify
-├── _redirects             # Redirecciones
-└── package.json           # Dependencias del proyecto
+│   ├── clientes.js        # Rutas de clientes
+│   ├── ping.js           # Health check básico
+│   └── health.js         # Health check completo
+├── utils/
+│   ├── responses.js      # Respuestas estandarizadas
+│   └── validation.js     # Validaciones de datos
+├── netlify/functions/
+│   └── api.js           # Función principal de Netlify
+└── schema/
+    └── *.sql           # Esquemas de base de datos
 ```
 
-## 📦 Instalación
+## � Base de Datos
+
+### Tabla: `clientes`
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | SERIAL PRIMARY KEY | ID único del cliente |
+| `codigo_alternativo` | VARCHAR(50) | Código alternativo opcional |
+| `nombre` | VARCHAR(100) NOT NULL | Nombre del cliente |
+| `razon` | VARCHAR(100) | Razón social |
+| `direccion` | VARCHAR(200) | Dirección física |
+| `telefono` | VARCHAR(30) | Número de teléfono |
+| `rut` | VARCHAR(30) | RUT/Identificación fiscal |
+| `activo` | BOOLEAN DEFAULT TRUE | Estado del cliente |
+| `x` | DOUBLE PRECISION | Coordenada X (longitud) |
+| `y` | DOUBLE PRECISION | Coordenada Y (latitud) |
+
+## 🛠️ API Endpoints
+
+### 🏥 Health & Status
+
+#### `GET /api`
+Información general de la API
+
+#### `GET /api/ping`
+Health check con información de base de datos
+
+#### `GET /api/health`
+Health check completo del sistema
+
+### 👥 Gestión de Clientes
+
+#### `GET /api/clientes`
+Obtener clientes con paginación y filtros
+
+**Query Parameters:**
+- `page` (number): Página actual (default: 1)
+- `limit` (number): Elementos por página (default: 10)
+- `search` (string): Búsqueda en nombre, razón y dirección
+- `activo` (boolean): Filtrar por estado activo
+
+#### `GET /api/clientes/:id`
+Obtener cliente específico por ID
+
+#### `POST /api/clientes`
+Crear nuevo cliente
+
+#### `PUT /api/clientes/:id`
+Actualizar cliente completo
+
+#### `PATCH /api/clientes/:id`
+Actualizar cliente parcialmente
+
+#### `DELETE /api/clientes/:id`
+Eliminar cliente
+
+#### `GET /api/clientes/:id/ubicacion`
+Obtener solo la ubicación geográfica del cliente
+
+## 🔧 Instalación y Desarrollo
 
 ```bash
+# Instalar dependencias
 npm install
-```
 
-## 🧪 Desarrollo Local
-
-```bash
+# Desarrollo local
 npm run dev
+
+# Construcción
+npm run build
 ```
 
-La API estará disponible en: `http://localhost:8888/api`
+## 🌐 Despliegue
 
-## 🌐 Producción
+La API está desplegada en Netlify Functions y se conecta automáticamente a una base de datos PostgreSQL en Neon.
 
-El proyecto se despliega automáticamente en Netlify cuando se hace push a `main`.
-
-**URL de producción:** https://mapaclientesbackend.netlify.app
-
-## 📋 Endpoints Disponibles
-
-### Health Check
-- `GET /api/ping` - Verificar estado del servidor
-
-### Clientes
-- `GET /api/clientes` - Obtener todos los clientes
-- `POST /api/clientes` - Crear nuevo cliente
-
-### Info General
+**URL Base:** `https://mapaclientesbackend.netlify.app/api`
 - `GET /api` - Información general de la API
 
 ## 🔧 Tecnologías
