@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import serverless from 'serverless-http';
 import pkg from 'pg';
+import { initializeDatabase, checkTableExists, getDatabaseInfo } from '../../config/dbInit.js';
 
 const { Pool } = pkg;
 
@@ -23,6 +24,26 @@ pool.on('connect', () => {
 pool.on('error', (err) => {
   console.error('❌ Error inesperado en el cliente de PostgreSQL', err);
 });
+
+// Inicialización de la base de datos
+let dbInitialized = false;
+
+const initDB = async () => {
+  if (!dbInitialized) {
+    try {
+      console.log('🚀 Iniciando verificación de base de datos...');
+      await initializeDatabase(pool);
+      dbInitialized = true;
+      console.log('✅ Base de datos inicializada correctamente');
+    } catch (error) {
+      console.error('❌ Error inicializando la base de datos:', error);
+      // No bloqueamos la aplicación, pero registramos el error
+    }
+  }
+};
+
+// Inicializar la base de datos al arrancar
+initDB();
 
 const app = express();
 
@@ -69,9 +90,17 @@ app.get('/api', (req, res) => {
     version: '1.0.0',
     description: 'API robusta para gestión de clientes con geolocalización',
     environment: process.env.NODE_ENV || 'production',
+    database: {
+      initialized: dbInitialized,
+      autoInit: true
+    },
     endpoints: {
       ping: '/api/ping',
       health: '/api/health',
+      database: {
+        info: '/api/database',
+        reinit: '/api/database/reinit (POST)'
+      },
       clientes: {
         base: '/api/clientes',
         methods: ['GET', 'POST'],
@@ -391,6 +420,65 @@ app.delete('/api/clientes/:id', async (req, res) => {
   } catch (error) {
     console.error('❌ Error al eliminar cliente:', error);
     errorResponse(res, 'Error al eliminar cliente', 500, error.message);
+  }
+});
+
+// RUTA DATABASE INFO - Información detallada de la base de datos
+app.get('/api/database', async (req, res) => {
+  try {
+    // Verificar si la base de datos está inicializada
+    if (!dbInitialized) {
+      return errorResponse(res, 'Base de datos no inicializada', 503);
+    }
+
+    const dbInfo = await getDatabaseInfo(pool);
+    
+    // Organizar la información por tablas
+    const tables = {};
+    dbInfo.forEach(row => {
+      if (!tables[row.table_name]) {
+        tables[row.table_name] = {
+          name: row.table_name,
+          type: row.table_type,
+          columns: []
+        };
+      }
+      if (row.column_name) {
+        tables[row.table_name].columns.push({
+          name: row.column_name,
+          type: row.data_type,
+          nullable: row.is_nullable === 'YES',
+          default: row.column_default
+        });
+      }
+    });
+
+    const response = {
+      initialized: dbInitialized,
+      tables: Object.values(tables),
+      tableCount: Object.keys(tables).length,
+      timestamp: new Date().toISOString()
+    };
+
+    successResponse(res, response, '📊 Información de base de datos obtenida correctamente');
+  } catch (error) {
+    console.error('❌ Error obteniendo información de BD:', error);
+    errorResponse(res, 'Error obteniendo información de la base de datos', 500, error.message);
+  }
+});
+
+// RUTA DATABASE REINIT - Reinicializar la base de datos
+app.post('/api/database/reinit', async (req, res) => {
+  try {
+    console.log('🔄 Reinicializando base de datos...');
+    dbInitialized = false;
+    await initializeDatabase(pool);
+    dbInitialized = true;
+    
+    successResponse(res, { initialized: true }, '✅ Base de datos reinicializada correctamente');
+  } catch (error) {
+    console.error('❌ Error reinicializando BD:', error);
+    errorResponse(res, 'Error reinicializando la base de datos', 500, error.message);
   }
 });
 
