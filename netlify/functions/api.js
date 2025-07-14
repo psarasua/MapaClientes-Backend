@@ -5,6 +5,7 @@ import serverless from 'serverless-http';
 import pkg from 'pg';
 import { initializeDatabase, checkTableExists, getDatabaseInfo } from '../../config/dbInit.js';
 import { seedCamiones } from '../../seeders/camionesSeeder.js';
+import { seedDiasEntrega } from '../../seeders/diasEntregaSeeder.js';
 
 // Cargar variables de entorno en desarrollo local
 if (process.env.NODE_ENV !== 'production') {
@@ -1105,6 +1106,7 @@ app.get('/api', async (req, res) => {
             <div class="test-buttons">
                 <button onclick="runSeeder('all')" class="test-button success">🌱 Ejecutar Todos los Seeders</button>
                 <button onclick="runSeeder('camiones')" class="test-button">🚛 Seeder de Camiones</button>
+                <button onclick="runSeeder('dias')" class="test-button">🗓️ Seeder de Días de Entrega</button>
             </div>
             <div id="seederResult"></div>
         </div>
@@ -1131,6 +1133,18 @@ app.get('/api', async (req, res) => {
                 </div>
                 <div class="test-buttons">
                     <button onclick="runSeeder('camiones')" class="test-button">Ejecutar</button>
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method post">POST</div>
+                <div class="url">/api/seeders/dias</div>
+                <div class="description">
+                    <strong>Seeder de días de entrega</strong><br>
+                    Inserta los días de la semana (Lunes a Viernes) para definir días de entrega.
+                </div>
+                <div class="test-buttons">
+                    <button onclick="runSeeder('dias')" class="test-button">Ejecutar</button>
                 </div>
             </div>
         </div>
@@ -1259,6 +1273,51 @@ app.get('/api', async (req, res) => {
             </div>
             <div class="endpoint-card">
                 <div class="method get">GET</div>
+                <div class="url">/api/dias-entrega</div>
+                <div class="description">
+                    <strong>Obtener lista de días de entrega</strong><br>
+                    Soporta paginación y filtros: page, limit, search
+                </div>
+                <div class="test-buttons">
+                    <a href="/api/dias-entrega" class="test-button">Probar</a>
+                    <a href="/api/dias-entrega?page=1&limit=5" class="test-button">Con filtros</a> 
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
+                <div class="url">/api/dias-entrega/:id</div>
+                <div class="description">
+                    <strong>Obtener día de entrega específico</strong><br>
+                    Devuelve información completa de un día de entrega por su ID.
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method post">POST</div>
+                <div class="url">/api/dias-entrega</div>
+                <div class="description">
+                    <strong>Crear nuevo día de entrega</strong><br>
+                    Campos requeridos: descripcion<br>
+                    Ejemplo: {"descripcion": "Sábado"}
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method put">PUT</div>
+                <div class="url">/api/dias-entrega/:id</div>
+                <div class="description">
+                    <strong>Actualizar día de entrega</strong><br>
+                    Actualiza completamente la información de un día de entrega existente.
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method delete">DELETE</div>
+                <div class="url">/api/dias-entrega/:id</div>
+                <div class="description">
+                    <strong>Eliminar día de entrega</strong><br>
+                    Elimina permanentemente un día de entrega de la base de datos.
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="method get">GET</div>
                 <div class="url">/api/database</div>
                 <div class="description">
                     <strong>Información de la base de datos</strong><br>
@@ -1289,6 +1348,13 @@ app.get('/api', async (req, res) => {
         <div class="code-block">
 {
   "descripcion": "Camión Repartidor 1"
+}
+        </div>
+        
+        <h2>📅 Ejemplo de Día de Entrega</h2>
+        <div class="code-block">
+{
+  "descripcion": "Sábado"
 }
         </div>
 
@@ -1398,6 +1464,8 @@ app.get('/api', async (req, res) => {
                 let endpoint = '/api/seeders';
                 if (type === 'camiones') {
                     endpoint = '/api/seeders/camiones';
+                } else if (type === 'dias') {
+                    endpoint = '/api/seeders/dias';
                 }
                 
                 const response = await fetch(endpoint, {
@@ -1416,6 +1484,12 @@ app.get('/api', async (req, res) => {
                         message += 'Se insertaron ' + data.data.camiones.length + ' camiones en la base de datos<br>';
                         const camionesNombres = data.data.camiones.map(function(c) { return c.descripcion; }).join(', ');
                         message += 'Camiones: ' + camionesNombres;
+                    }
+                    
+                    if (data.data.dias_entrega) {
+                        message += 'Se insertaron ' + data.data.dias_entrega.length + ' días de entrega en la base de datos<br>';
+                        const diasNombres = data.data.dias_entrega.map(function(d) { return d.descripcion; }).join(', ');
+                        message += 'Días: ' + diasNombres;
                     }
                     
                     if (data.data.seeders) {
@@ -1619,400 +1693,177 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// RUTAS DE CLIENTES
+// =============================================================================
+// CRUD DÍAS DE ENTREGA
+// =============================================================================
 
-// Validación de cliente
-const validateCliente = (cliente) => {
+// Función de validación para días de entrega
+function validateDiaEntrega(diaData) {
   const errors = [];
-  if (!cliente.nombre || cliente.nombre.trim().length === 0) {
-    errors.push('El nombre es requerido');
+  
+  if (!diaData || typeof diaData !== 'object') {
+    errors.push('Los datos del día son requeridos');
+    return errors;
   }
-  if (cliente.nombre && cliente.nombre.length > 100) {
-    errors.push('El nombre no puede exceder 100 caracteres');
-  }
-  if (cliente.x && (isNaN(cliente.x) || cliente.x < -180 || cliente.x > 180)) {
-    errors.push('La coordenada X debe ser un número válido entre -180 y 180');
-  }
-  if (cliente.y && (isNaN(cliente.y) || cliente.y < -90 || cliente.y > 90)) {
-    errors.push('La coordenada Y debe ser un número válido entre -90 y 90');
-  }
-  return errors;
-};
 
-// GET /api/clientes - Obtener todos los clientes con paginación
-app.get('/api/clientes', async (req, res) => {
+  if (!diaData.descripcion || typeof diaData.descripcion !== 'string' || diaData.descripcion.trim() === '') {
+    errors.push('La descripción es requerida y debe ser un texto válido');
+  }
+
+  return errors;
+}
+
+// GET /api/dias-entrega - Obtener todos los días de entrega con paginación
+app.get('/api/dias-entrega', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || '';
-    const activo = req.query.activo;
     const offset = (page - 1) * limit;
+    const search = req.query.search || '';
 
-    let whereClause = 'WHERE 1=1';
-    const params = [];
-    let paramCount = 0;
+    let query = 'SELECT * FROM dias_entrega';
+    let countQuery = 'SELECT COUNT(*) FROM dias_entrega';
+    let params = [];
 
+    // Aplicar filtros de búsqueda
     if (search) {
-      paramCount++;
-      whereClause += ` AND (nombre ILIKE $${paramCount} OR razon ILIKE $${paramCount} OR direccion ILIKE $${paramCount})`;
+      query += ' WHERE descripcion ILIKE $1';
+      countQuery += ' WHERE descripcion ILIKE $1';
       params.push(`%${search}%`);
     }
 
-    if (activo !== undefined) {
-      paramCount++;
-      whereClause += ` AND activo = $${paramCount}`;
-      params.push(activo === 'true');
-    }
-
-    const countQuery = `SELECT COUNT(*) FROM clientes ${whereClause}`;
-    const countResult = await pool.query(countQuery, params);
-    const total = parseInt(countResult.rows[0].count);
-
-    paramCount++;
-    const limitParam = paramCount;
-    paramCount++;
-    const offsetParam = paramCount;
-
-    const query = `
-      SELECT id, codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y
-      FROM clientes 
-      ${whereClause}
-      ORDER BY nombre ASC
-      LIMIT $${limitParam} OFFSET $${offsetParam}
-    `;
-
+    // Agregar ordenamiento y paginación
+    query += ' ORDER BY id ASC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
     params.push(limit, offset);
-    const result = await pool.query(query, params);
 
-    const totalPages = Math.ceil(total / limit);
+    const [dataResult, countResult] = await Promise.all([
+      pool.query(query, params),
+      pool.query(countQuery, search ? [`%${search}%`] : [])
+    ]);
 
-    const response = {
-      data: result.rows,
+    const totalItems = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    successResponse(res, {
+      data: dataResult.rows,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: parseInt(total),
+        page,
+        limit,
+        totalItems,
         totalPages,
         hasNext: page < totalPages,
         hasPrev: page > 1
       }
-    };
-
-    successResponse(res, response, 'Clientes obtenidos exitosamente');
+    }, 'Días de entrega obtenidos exitosamente');
   } catch (error) {
-    console.error('❌ Error al obtener clientes:', error);
-    errorResponse(res, 'Error al obtener clientes', 500, error.message);
+    console.error('❌ Error al obtener días de entrega:', error);
+    errorResponse(res, 'Error al obtener días de entrega', 500, error.message);
   }
 });
 
-// GET /api/clientes/:id - Obtener cliente por ID
-app.get('/api/clientes/:id', async (req, res) => {
+// GET /api/dias-entrega/:id - Obtener día de entrega por ID
+app.get('/api/dias-entrega/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de cliente inválido', 400);
+      return errorResponse(res, 'ID de día de entrega inválido', 400);
     }
 
-    const query = 'SELECT * FROM clientes WHERE id = $1';
+    const query = 'SELECT * FROM dias_entrega WHERE id = $1';
     const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
-      return errorResponse(res, 'Cliente no encontrado', 404);
+      return errorResponse(res, 'Día de entrega no encontrado', 404);
     }
 
-    successResponse(res, result.rows[0], 'Cliente obtenido exitosamente');
+    successResponse(res, result.rows[0], 'Día de entrega obtenido exitosamente');
   } catch (error) {
-    console.error('❌ Error al obtener cliente:', error);
-    errorResponse(res, 'Error al obtener cliente', 500, error.message);
+    console.error('❌ Error al obtener día de entrega:', error);
+    errorResponse(res, 'Error al obtener día de entrega', 500, error.message);
   }
 });
 
-// POST /api/clientes - Crear nuevo cliente
-app.post('/api/clientes', async (req, res) => {
+// POST /api/dias-entrega - Crear nuevo día de entrega
+app.post('/api/dias-entrega', async (req, res) => {
   try {
-    const clienteData = req.body;
-
-    const validationErrors = validateCliente(clienteData);
-    if (validationErrors.length > 0) {
-      return errorResponse(res, 'Datos de cliente inválidos', 400, validationErrors);
-    }
-
-    const {
-      codigo_alternativo,
-      nombre,
-      razon,
-      direccion,
-      telefono,
-      rut,
-      activo = true,
-      x,
-      y
-    } = clienteData;
-
-    const query = `
-      INSERT INTO clientes (codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `;
-
-    const values = [codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y];
-    const result = await pool.query(query, values);
-
-    successResponse(res, result.rows[0], 'Cliente creado exitosamente', 201);
-  } catch (error) {
-    console.error('❌ Error al crear cliente:', error);
-
-    if (error.code === '23505') {
-      return errorResponse(res, 'Ya existe un cliente con ese código alternativo', 409);
-    }
-
-    errorResponse(res, 'Error al crear cliente', 500, error.message);
-  }
-});
-
-// PUT /api/clientes/:id - Actualizar cliente completo
-app.put('/api/clientes/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const clienteData = req.body;
-
-    if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de cliente inválido', 400);
-    }
-
-    const validationErrors = validateCliente(clienteData);
-    if (validationErrors.length > 0) {
-      return errorResponse(res, 'Datos de cliente inválidos', 400, validationErrors);
-    }
-
-    const {
-      codigo_alternativo,
-      nombre,
-      razon,
-      direccion,
-      telefono,
-      rut,
-      activo,
-      x,
-      y
-    } = clienteData;
-
-    const query = `
-      UPDATE clientes 
-      SET codigo_alternativo = $1, nombre = $2, razon = $3, direccion = $4, 
-          telefono = $5, rut = $6, activo = $7, x = $8, y = $9
-      WHERE id = $10
-      RETURNING *
-    `;
-
-    const values = [codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y, id];
-    const result = await pool.query(query, values);
-
-    if (result.rows.length === 0) {
-      return errorResponse(res, 'Cliente no encontrado', 404);
-    }
-
-    successResponse(res, result.rows[0], 'Cliente actualizado exitosamente');
-  } catch (error) {
-    console.error('❌ Error al actualizar cliente:', error);
-    errorResponse(res, 'Error al actualizar cliente', 500, error.message);
-  }
-});
-
-// DELETE /api/clientes/:id - Eliminar cliente
-app.delete('/api/clientes/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de cliente inválido', 400);
-    }
-
-    const query = 'DELETE FROM clientes WHERE id = $1 RETURNING *';
-    const result = await pool.query(query, [id]);
-
-    if (result.rows.length === 0) {
-      return errorResponse(res, 'Cliente no encontrado', 404);
-    }
-
-    successResponse(res, result.rows[0], 'Cliente eliminado exitosamente');
-  } catch (error) {
-    console.error('❌ Error al eliminar cliente:', error);
-    errorResponse(res, 'Error al eliminar cliente', 500, error.message);
-  }
-});
-
-// RUTAS DE CAMIONES
-
-// Validación de camión
-const validateCamion = (camion) => {
-  const errors = [];
-  if (!camion.descripcion || camion.descripcion.trim().length === 0) {
-    errors.push('La descripción es requerida');
-  }
-  if (camion.descripcion && camion.descripcion.length > 100) {
-    errors.push('La descripción no puede exceder 100 caracteres');
-  }
-  return errors;
-};
-
-// GET /api/camiones - Obtener todos los camiones con paginación
-app.get('/api/camiones', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || '';
-    const offset = (page - 1) * limit;
-
-    let whereClause = 'WHERE 1=1';
-    const params = [];
-    let paramCount = 0;
-
-    if (search) {
-      paramCount++;
-      whereClause += ` AND descripcion ILIKE $${paramCount}`;
-      params.push(`%${search}%`);
-    }
-
-    const countQuery = `SELECT COUNT(*) FROM camiones ${whereClause}`;
-    const countResult = await pool.query(countQuery, params);
-    const total = parseInt(countResult.rows[0].count);
-
-    paramCount++;
-    const limitParam = paramCount;
-    paramCount++;
-    const offsetParam = paramCount;
-
-    const query = `
-      SELECT id, descripcion
-      FROM camiones 
-      ${whereClause}
-      ORDER BY descripcion ASC
-      LIMIT $${limitParam} OFFSET $${offsetParam}
-    `;
-
-    params.push(limit, offset);
-    const result = await pool.query(query, params);
-
-    const totalPages = Math.ceil(total / limit);
-
-    const response = {
-      data: result.rows,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: parseInt(total),
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
-    };
-
-    successResponse(res, response, 'Camiones obtenidos exitosamente');
-  } catch (error) {
-    console.error('❌ Error al obtener camiones:', error);
-    errorResponse(res, 'Error al obtener camiones', 500, error.message);
-  }
-});
-
-// GET /api/camiones/:id - Obtener camión por ID
-app.get('/api/camiones/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de camión inválido', 400);
-    }
-
-    const query = 'SELECT * FROM camiones WHERE id = $1';
-    const result = await pool.query(query, [id]);
-
-    if (result.rows.length === 0) {
-      return errorResponse(res, 'Camión no encontrado', 404);
-    }
-
-    successResponse(res, result.rows[0], 'Camión obtenido exitosamente');
-  } catch (error) {
-    console.error('❌ Error al obtener camión:', error);
-    errorResponse(res, 'Error al obtener camión', 500, error.message);
-  }
-});
-
-// POST /api/camiones - Crear nuevo camión
-app.post('/api/camiones', async (req, res) => {
-  try {
-    let camionData = req.body;
-
+    let diaData = req.body;
+    
     // Si el cuerpo viene como buffer, parsearlo
-    if (Buffer.isBuffer(camionData)) {
+    if (Buffer.isBuffer(diaData)) {
       try {
-        camionData = JSON.parse(camionData.toString());
+        diaData = JSON.parse(diaData.toString());
       } catch (parseError) {
         return errorResponse(res, 'Formato JSON inválido', 400, parseError.message);
       }
     }
-
-    console.log('📝 Datos recibidos para crear camión:', camionData);
-
-    const validationErrors = validateCamion(camionData);
+    
+    console.log('📝 Datos recibidos para crear día de entrega:', diaData);
+    
+    const validationErrors = validateDiaEntrega(diaData);
     console.log('🔍 Errores de validación:', validationErrors);
-
+    
     if (validationErrors.length > 0) {
-      return errorResponse(res, 'Datos de camión inválidos', 400, validationErrors);
+      return errorResponse(res, 'Datos de día de entrega inválidos', 400, validationErrors);
     }
 
-    const { descripcion } = camionData;
-    console.log('🚛 Descripción extraída:', descripcion);
+    const { descripcion } = diaData;
+    console.log('📅 Descripción extraída:', descripcion);
 
     const query = `
-      INSERT INTO camiones (descripcion)
+      INSERT INTO dias_entrega (descripcion)
       VALUES ($1)
       RETURNING *
     `;
 
     const result = await pool.query(query, [descripcion]);
 
-    successResponse(res, result.rows[0], 'Camión creado exitosamente', 201);
+    successResponse(res, result.rows[0], 'Día de entrega creado exitosamente', 201);
   } catch (error) {
-    console.error('❌ Error al crear camión:', error);
-
+    console.error('❌ Error al crear día de entrega:', error);
+    
+    // Error de clave única (PostgreSQL)
     if (error.code === '23505') {
-      return errorResponse(res, 'Ya existe un camión con esa descripción', 409);
+      return errorResponse(res, 'Ya existe un día de entrega con esa descripción', 409);
     }
-
-    errorResponse(res, 'Error al crear camión', 500, error.message);
+    
+    // Error de violación de restricción NOT NULL
+    if (error.code === '23502') {
+      return errorResponse(res, 'Faltan campos requeridos', 400);
+    }
+    
+    errorResponse(res, 'Error al crear día de entrega', 500, error.message);
   }
 });
 
-// PUT /api/camiones/:id - Actualizar camión completo
-app.put('/api/camiones/:id', async (req, res) => {
+// PUT /api/dias-entrega/:id - Actualizar día de entrega completo
+app.put('/api/dias-entrega/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    let camionData = req.body;
+    let diaData = req.body;
 
     if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de camión inválido', 400);
+      return errorResponse(res, 'ID de día de entrega inválido', 400);
     }
 
     // Si el cuerpo viene como buffer, parsearlo
-    if (Buffer.isBuffer(camionData)) {
+    if (Buffer.isBuffer(diaData)) {
       try {
-        camionData = JSON.parse(camionData.toString());
+        diaData = JSON.parse(diaData.toString());
       } catch (parseError) {
         return errorResponse(res, 'Formato JSON inválido', 400, parseError.message);
       }
     }
 
-    const validationErrors = validateCamion(camionData);
+    const validationErrors = validateDiaEntrega(diaData);
     if (validationErrors.length > 0) {
-      return errorResponse(res, 'Datos de camión inválidos', 400, validationErrors);
+      return errorResponse(res, 'Datos de día de entrega inválidos', 400, validationErrors);
     }
 
-    const { descripcion } = camionData;
+    const { descripcion } = diaData;
 
     const query = `
-      UPDATE camiones 
+      UPDATE dias_entrega 
       SET descripcion = $1
       WHERE id = $2
       RETURNING *
@@ -2021,168 +1872,59 @@ app.put('/api/camiones/:id', async (req, res) => {
     const result = await pool.query(query, [descripcion, id]);
 
     if (result.rows.length === 0) {
-      return errorResponse(res, 'Camión no encontrado', 404);
+      return errorResponse(res, 'Día de entrega no encontrado', 404);
     }
 
-    successResponse(res, result.rows[0], 'Camión actualizado exitosamente');
+    successResponse(res, result.rows[0], 'Día de entrega actualizado exitosamente');
   } catch (error) {
-    console.error('❌ Error al actualizar camión:', error);
-
+    console.error('❌ Error al actualizar día de entrega:', error);
+    
     if (error.code === '23505') {
-      return errorResponse(res, 'Ya existe un camión con esa descripción', 409);
+      return errorResponse(res, 'Ya existe un día de entrega con esa descripción', 409);
     }
-
-    errorResponse(res, 'Error al actualizar camión', 500, error.message);
+    
+    errorResponse(res, 'Error al actualizar día de entrega', 500, error.message);
   }
 });
 
-// DELETE /api/camiones/:id - Eliminar camión
-app.delete('/api/camiones/:id', async (req, res) => {
+// DELETE /api/dias-entrega/:id - Eliminar día de entrega
+app.delete('/api/dias-entrega/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de camión inválido', 400);
+      return errorResponse(res, 'ID de día de entrega inválido', 400);
     }
 
-    // Verificar si el camión está siendo usado en otras tablas
+    // Verificar si el día está siendo usado en otras tablas
     const checkUsageQuery = `
       SELECT COUNT(*) as count 
       FROM camiones_dias 
-      WHERE camion_id = $1
+      WHERE dia_entrega_id = $1
     `;
 
     const usageResult = await pool.query(checkUsageQuery, [id]);
 
     if (usageResult.rows[0].count > 0) {
-      return errorResponse(res, 'No se puede eliminar el camión porque está siendo usado en asignaciones de días', 400);
+      return errorResponse(res, 'No se puede eliminar el día de entrega porque está siendo usado en asignaciones de camiones', 400);
     }
 
-    const query = 'DELETE FROM camiones WHERE id = $1 RETURNING *';
+    const query = 'DELETE FROM dias_entrega WHERE id = $1 RETURNING *';
     const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
-      return errorResponse(res, 'Camión no encontrado', 404);
+      return errorResponse(res, 'Día de entrega no encontrado', 404);
     }
 
-    successResponse(res, result.rows[0], 'Camión eliminado exitosamente');
+    successResponse(res, result.rows[0], 'Día de entrega eliminado exitosamente');
   } catch (error) {
-    console.error('❌ Error al eliminar camión:', error);
+    console.error('❌ Error al eliminar día de entrega:', error);
 
     if (error.code === '23503') {
-      return errorResponse(res, 'No se puede eliminar el camión porque está siendo usado en otras tablas', 400);
+      return errorResponse(res, 'No se puede eliminar el día de entrega porque está siendo usado en otras tablas', 400);
     }
 
-    errorResponse(res, 'Error al eliminar camión', 500, error.message);
-  }
-});
-
-// RUTA DATABASE INFO - Información detallada de la base de datos
-app.get('/api/database', async (req, res) => {
-  try {
-    // Verificar si la base de datos está inicializada
-    if (!dbInitialized) {
-      return errorResponse(res, 'Base de datos no inicializada', 503, {
-        error: dbInitError ? dbInitError.message : 'Error desconocido',
-        errorCode: dbInitError ? dbInitError.code : null,
-        errorDetail: dbInitError ? dbInitError.detail : null,
-        hasDatabaseUrl: !!process.env.DATABASE_URL,
-        connectionString: process.env.DATABASE_URL ? '[CONFIGURADO]' : '[USANDO FALLBACK]',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const dbInfo = await getDatabaseInfo(pool);
-
-    // Organizar la información por tablas
-    const tables = {};
-    dbInfo.forEach(row => {
-      if (!tables[row.table_name]) {
-        tables[row.table_name] = {
-          name: row.table_name,
-          type: row.table_type,
-          columns: []
-        };
-      }
-      if (row.column_name) {
-        tables[row.table_name].columns.push({
-          name: row.column_name,
-          type: row.data_type,
-          nullable: row.is_nullable === 'YES',
-          default: row.column_default
-        });
-      }
-    });
-
-    const response = {
-      initialized: dbInitialized,
-      environment: {
-        databaseUrl: process.env.DATABASE_URL ? 'CONFIGURADO' : 'USANDO FALLBACK',
-        nodeEnv: process.env.NODE_ENV || 'no definido',
-        corsOrigin: process.env.CORS_ORIGIN || '*',
-        envValidation: envValidation
-      },
-      tables: Object.values(tables),
-      tableCount: Object.keys(tables).length,
-      timestamp: new Date().toISOString()
-    };
-
-    successResponse(res, response, '📊 Información de base de datos obtenida correctamente');
-  } catch (error) {
-    console.error('❌ Error obteniendo información de BD:', error);
-    errorResponse(res, 'Error obteniendo información de la base de datos', 500, error.message);
-  }
-});
-
-// RUTA DATABASE REINIT - Reinicializar la base de datos
-app.post('/api/database/reinit', async (req, res) => {
-  try {
-    console.log('🔄 Reinicializando base de datos...');
-    dbInitialized = false;
-    await initializeDatabase(pool);
-    dbInitialized = true;
-
-    successResponse(res, { initialized: true }, '✅ Base de datos reinicializada correctamente');
-  } catch (error) {
-    console.error('❌ Error reinicializando BD:', error);
-    errorResponse(res, 'Error reinicializando la base de datos', 500, error.message);
-  }
-});
-
-// RUTA SEEDERS - Ejecutar seeders
-app.post('/api/seeders', async (req, res) => {
-  try {
-    console.log('🌱 Ejecutando seeders...');
-
-    // Ejecutar seeder de camiones pasando el pool de conexiones
-    const result = await seedCamiones(pool);
-
-    successResponse(res, {
-      seeders: ['camiones'],
-      camiones: result,
-      message: 'Seeders ejecutados correctamente'
-    }, '✅ Seeders ejecutados exitosamente');
-  } catch (error) {
-    console.error('❌ Error ejecutando seeders:', error);
-    errorResponse(res, 'Error ejecutando seeders', 500, error.message);
-  }
-});
-
-// RUTA SEEDERS CAMIONES - Ejecutar solo seeder de camiones
-app.post('/api/seeders/camiones', async (req, res) => {
-  try {
-    console.log('🚛 Ejecutando seeder de camiones...');
-
-    // Ejecutar seeder de camiones pasando el pool de conexiones
-    const result = await seedCamiones(pool);
-
-    successResponse(res, {
-      camiones: result,
-      message: 'Seeder de camiones ejecutado correctamente'
-    }, '✅ Seeder de camiones ejecutado exitosamente');
-  } catch (error) {
-    console.error('❌ Error ejecutando seeder de camiones:', error);
-    errorResponse(res, 'Error ejecutando seeder de camiones', 500, error.message);
+    errorResponse(res, 'Error al eliminar día de entrega', 500, error.message);
   }
 });
 
