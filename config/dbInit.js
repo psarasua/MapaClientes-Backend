@@ -29,6 +29,11 @@ export const initializeDatabase = async (pool) => {
   try {
     console.log('🔄 Iniciando verificación y creación de tablas...');
     
+    // Verificar conexión primero
+    const testClient = await pool.connect();
+    console.log('✅ Pool de conexiones funciona correctamente');
+    testClient.release();
+    
     // Orden de creación de tablas (respetando las dependencias)
     const schemaFiles = [
       'dias_entrega.sql',

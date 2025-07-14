@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapaClientes API - Redirigiendo...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ MapaClientes API</h1>
+        <div class="spinner"></div>
+        <p>Cargando documentación de la API...</p>
+        <p>Si no se redirige automáticamente, haz clic aquí:</p>
+        <a href="/api" class="button">🚀 Ver API</a>
+        <a href="/api/ping" class="button">🏓 Ping</a>
+    </div>
+
+    <script>
+        // Intentar cargar la documentación de la API
+        setTimeout(() => {
+            fetch('/api')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/api';
+                    } else {
+                        document.querySelector('.container').innerHTML = `
+                            <h1>🗺️ MapaClientes API</h1>
+                            <p>❌ Error cargando la API</p>
+                            <a href="/api" class="button">🔄 Reintentar</a>
+                            <a href="/api/ping" class="button">🏓 Ping</a>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.querySelector('.container').innerHTML = `
+                        <h1>🗺️ MapaClientes API</h1>
+                        <p>⚠️ La API no está disponible</p>
+                        <a href="/api" class="button">🔄 Reintentar</a>
+                        <a href="/api/ping" class="button">🏓 Ping</a>
+                    `;
+                });
+        }, 2000);
+    </script>
+</body>
+</html>
