@@ -4,6 +4,7 @@ import cors from 'cors';
 import serverless from 'serverless-http';
 import pkg from 'pg';
 import { initializeDatabase, checkTableExists, getDatabaseInfo } from '../../config/dbInit.js';
+import { seedCamiones } from '../../seeders/camionesSeeder.js';
 
 // Cargar variables de entorno en desarrollo local
 if (process.env.NODE_ENV !== 'production') {
@@ -85,17 +86,17 @@ const initDB = async () => {
       console.log('🚀 Iniciando verificación de base de datos...');
       console.log('🔗 DATABASE_URL configurada:', process.env.DATABASE_URL ? 'Sí' : 'No (usando fallback)');
       console.log('🔗 String de conexión:', process.env.DATABASE_URL ? '[CONFIGURADO]' : '[USANDO FALLBACK]');
-      
+
       // Verificar conexión primero
       console.log('⏳ Intentando conectar a PostgreSQL...');
       const client = await pool.connect();
       console.log('✅ Conexión a PostgreSQL establecida');
       client.release();
-      
+
       // Inicializar tablas
       console.log('⏳ Iniciando creación/verificación de tablas...');
       await initializeDatabase(pool);
-      
+
       dbInitialized = true;
       dbInitError = null;
       console.log('✅ Base de datos inicializada correctamente');
@@ -158,7 +159,7 @@ app.get('/', async (req, res) => {
     let dbStatus = '🔴 Desconectada';
     let dbDetails = '';
     let dbInitStatus = '🔴 No inicializada';
-    
+
     try {
       const dbStart = Date.now();
       await pool.query('SELECT 1');
@@ -169,20 +170,20 @@ app.get('/', async (req, res) => {
       dbStatus = '🔴 Error de conexión';
       dbDetails = `(${error.message})`;
     }
-    
+
     if (dbInitialized) {
       dbInitStatus = '🟢 Inicializada correctamente';
     } else if (dbInitError) {
       dbInitStatus = `🔴 Error: ${dbInitError.message}`;
     }
-    
+
     // Verificar variables de entorno
     const envStatus = {
       DATABASE_URL: process.env.DATABASE_URL ? '🟢 Configurada' : '🔴 No configurada',
       NODE_ENV: process.env.NODE_ENV ? `🟢 ${process.env.NODE_ENV}` : '🟡 No definida',
       CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)'
     };
-    
+
     const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -449,7 +450,7 @@ app.get('/', async (req, res) => {
 </body>
 </html>
     `;
-    
+
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error) {
@@ -466,7 +467,7 @@ app.get('/api', async (req, res) => {
     let dbDetails = '';
     let dbInitStatus = '🔴 No inicializada';
     let dbResponseTime = 0;
-    
+
     try {
       const dbStart = Date.now();
       await pool.query('SELECT 1');
@@ -477,20 +478,20 @@ app.get('/api', async (req, res) => {
       dbStatus = '🔴 Error de conexión';
       dbDetails = error.message;
     }
-    
+
     if (dbInitialized) {
       dbInitStatus = '🟢 Inicializada correctamente';
     } else if (dbInitError) {
       dbInitStatus = `🔴 Error: ${dbInitError.message}`;
     }
-    
+
     // Verificar variables de entorno
     const envStatus = {
       DATABASE_URL: process.env.DATABASE_URL ? '🟢 Configurada' : '🔴 No configurada',
       NODE_ENV: process.env.NODE_ENV ? `🟢 ${process.env.NODE_ENV}` : '🟡 No definida',
       CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)'
     };
-    
+
     // Obtener información detallada de la base de datos
     let dbInfo = {
       connected: false,
@@ -505,10 +506,10 @@ app.get('/api', async (req, res) => {
         waitingClients: 0
       }
     };
-    
+
     let tableInfo = '';
     let detailedDbInfo = '';
-    
+
     try {
       if (dbInitialized) {
         // Información básica de la base de datos
@@ -520,18 +521,18 @@ app.get('/api', async (req, res) => {
           FROM pg_database 
           WHERE datname = current_database()
         `);
-        
+
         dbInfo.version = versionQuery.rows[0].version;
         dbInfo.size = sizeQuery.rows[0].size;
         dbInfo.connected = true;
-        
+
         // Información del pool de conexiones
         dbInfo.connectionPool = {
           totalConnections: pool.totalCount,
           idleConnections: pool.idleCount,
           waitingClients: pool.waitingCount
         };
-        
+
         // Información detallada de las tablas con columnas
         const tablesDetailQuery = await pool.query(`
           SELECT 
@@ -548,7 +549,7 @@ app.get('/api', async (req, res) => {
           WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
           ORDER BY t.table_name, c.ordinal_position
         `);
-        
+
         // Organizar información por tabla
         const tablesMap = {};
         tablesDetailQuery.rows.forEach(row => {
@@ -560,7 +561,7 @@ app.get('/api', async (req, res) => {
               columns: []
             };
           }
-          
+
           if (row.column_name) {
             tablesMap[row.table_name].columns.push({
               name: row.column_name,
@@ -571,16 +572,16 @@ app.get('/api', async (req, res) => {
             });
           }
         });
-        
+
         dbInfo.tables = Object.values(tablesMap);
         dbInfo.totalTables = Object.keys(tablesMap).length;
         dbInfo.totalColumns = tablesDetailQuery.rows.length;
-        
+
         // Generar HTML para tabla simple
-        tableInfo = Object.values(tablesMap).map(table => 
+        tableInfo = Object.values(tablesMap).map(table =>
           `<tr><td>${table.name}</td><td>${table.totalColumns} columnas</td></tr>`
         ).join('');
-        
+
         // Generar HTML detallado de la base de datos
         detailedDbInfo = `
           <div class="db-info-section">
@@ -628,7 +629,7 @@ app.get('/api', async (req, res) => {
             `).join('')}
           </div>
         `;
-        
+
       }
     } catch (error) {
       tableInfo = '<tr><td colspan="2">Error obteniendo información de tablas</td></tr>';
@@ -638,7 +639,7 @@ app.get('/api', async (req, res) => {
         </div>
       `;
     }
-    
+
     const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -1036,6 +1037,44 @@ app.get('/api', async (req, res) => {
         </div>
         ` : ''}
 
+        <h2>🌱 Seeders de Base de Datos</h2>
+        
+        <div class="test-section">
+            <h3>🗃️ Población de Datos</h3>
+            <p>Los seeders permiten insertar datos de ejemplo en la base de datos de forma rápida y consistente:</p>
+            <div class="test-buttons">
+                <button onclick="runSeeder('all')" class="test-button success">🌱 Ejecutar Todos los Seeders</button>
+                <button onclick="runSeeder('camiones')" class="test-button">🚛 Seeder de Camiones</button>
+            </div>
+            <div id="seederResult"></div>
+        </div>
+
+        <div class="endpoint-grid">
+            <div class="endpoint-card">
+                <div class="method post">POST</div>
+                <div class="url">/api/seeders</div>
+                <div class="description">
+                    <strong>Ejecutar todos los seeders</strong><br>
+                    Ejecuta todos los seeders disponibles para poblar la base de datos con datos de ejemplo.
+                </div>
+                <div class="test-buttons">
+                    <button onclick="runSeeder('all')" class="test-button success">Ejecutar</button>
+                </div>
+            </div>
+
+            <div class="endpoint-card">
+                <div class="method post">POST</div>
+                <div class="url">/api/seeders/camiones</div>
+                <div class="description">
+                    <strong>Seeder de camiones</strong><br>
+                    Inserta datos de ejemplo para los camiones de reparto en la base de datos.
+                </div>
+                <div class="test-buttons">
+                    <button onclick="runSeeder('camiones')" class="test-button">Ejecutar</button>
+                </div>
+            </div>
+        </div>
+
         <h2>🚀 Documentación de Endpoints</h2>
         
         <div class="endpoint-grid">
@@ -1235,6 +1274,61 @@ app.get('/api', async (req, res) => {
             button.disabled = false;
         }
 
+        async function runSeeder(type) {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '🔄 Ejecutando...';
+            button.disabled = true;
+            
+            const resultDiv = document.getElementById('seederResult');
+            
+            try {
+                let endpoint = '/api/seeders';
+                if (type === 'camiones') {
+                    endpoint = '/api/seeders/camiones';
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    let message = '<strong>✅ Seeders ejecutados exitosamente!</strong><br>';
+                    
+                    if (data.data.camiones) {
+                        message += 'Se insertaron ' + data.data.camiones.length + ' camiones en la base de datos<br>';
+                        const camionesNombres = data.data.camiones.map(function(c) { return c.descripcion; }).join(', ');
+                        message += 'Camiones: ' + camionesNombres;
+                    }
+                    
+                    if (data.data.seeders) {
+                        message += 'Seeders ejecutados: ' + data.data.seeders.join(', ');
+                    }
+                    
+                    resultDiv.innerHTML = '<div class="alert alert-success">' + message + '</div>';
+                    
+                    // Actualizar información después de 2 segundos
+                    setTimeout(function() {
+                        refreshDbInfo();
+                    }, 2000);
+                } else {
+                    const errorMessage = '<div class="alert alert-danger"><strong>❌ Error ejecutando seeders</strong><br>' + data.error + '</div>';
+                    resultDiv.innerHTML = errorMessage;
+                }
+            } catch (error) {
+                const errorMessage = '<div class="alert alert-danger"><strong>❌ Error de red</strong><br>' + error.message + '</div>';
+                resultDiv.innerHTML = errorMessage;
+            }
+            
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+
         async function refreshDbInfo() {
             const button = event.target;
             const originalText = button.textContent;
@@ -1255,7 +1349,7 @@ app.get('/api', async (req, res) => {
 </body>
 </html>
     `;
-    
+
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error) {
@@ -1270,7 +1364,7 @@ app.get('/api/ping', async (req, res) => {
     const dbStart = Date.now();
     const result = await pool.query('SELECT NOW() as current_time, version() as db_version');
     const dbTime = Date.now() - dbStart;
-    
+
     const response = {
       status: 'ok',
       environment: process.env.NODE_ENV || 'production',
@@ -1287,7 +1381,7 @@ app.get('/api/ping', async (req, res) => {
     successResponse(res, response, '🏓 Pong! Sistema operativo');
   } catch (error) {
     console.error('❌ Error en ping:', error);
-    
+
     const response = {
       status: 'ok',
       environment: process.env.NODE_ENV || 'production',
@@ -1341,18 +1435,18 @@ app.get('/api/env', (req, res) => {
 app.post('/api/init', async (req, res) => {
   try {
     console.log('🔄 Reintentando inicialización de base de datos...');
-    
+
     // Resetear estado
     dbInitialized = false;
     dbInitError = null;
-    
+
     // Intentar inicializar nuevamente
     await initDB();
-    
+
     if (dbInitialized) {
-      successResponse(res, { 
-        initialized: true, 
-        timestamp: new Date().toISOString() 
+      successResponse(res, {
+        initialized: true,
+        timestamp: new Date().toISOString()
       }, '✅ Base de datos inicializada exitosamente');
     } else {
       errorResponse(res, 'Error en la inicialización', 500, {
@@ -1380,7 +1474,7 @@ app.get('/api/health', async (req, res) => {
     const dbStart = Date.now();
     await pool.query('SELECT 1');
     const dbTime = Date.now() - dbStart;
-    
+
     healthCheck.services.database = {
       status: 'healthy',
       responseTime: `${dbTime}ms`
@@ -1466,7 +1560,7 @@ app.get('/api/clientes', async (req, res) => {
     const limitParam = paramCount;
     paramCount++;
     const offsetParam = paramCount;
-    
+
     const query = `
       SELECT id, codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y
       FROM clientes 
@@ -1474,12 +1568,12 @@ app.get('/api/clientes', async (req, res) => {
       ORDER BY nombre ASC
       LIMIT $${limitParam} OFFSET $${offsetParam}
     `;
-    
+
     params.push(limit, offset);
     const result = await pool.query(query, params);
 
     const totalPages = Math.ceil(total / limit);
-    
+
     const response = {
       data: result.rows,
       pagination: {
@@ -1503,7 +1597,7 @@ app.get('/api/clientes', async (req, res) => {
 app.get('/api/clientes/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     if (!id || isNaN(id)) {
       return errorResponse(res, 'ID de cliente inválido', 400);
     }
@@ -1526,7 +1620,7 @@ app.get('/api/clientes/:id', async (req, res) => {
 app.post('/api/clientes', async (req, res) => {
   try {
     const clienteData = req.body;
-    
+
     const validationErrors = validateCliente(clienteData);
     if (validationErrors.length > 0) {
       return errorResponse(res, 'Datos de cliente inválidos', 400, validationErrors);
@@ -1556,11 +1650,11 @@ app.post('/api/clientes', async (req, res) => {
     successResponse(res, result.rows[0], 'Cliente creado exitosamente', 201);
   } catch (error) {
     console.error('❌ Error al crear cliente:', error);
-    
+
     if (error.code === '23505') {
       return errorResponse(res, 'Ya existe un cliente con ese código alternativo', 409);
     }
-    
+
     errorResponse(res, 'Error al crear cliente', 500, error.message);
   }
 });
@@ -1653,7 +1747,7 @@ app.get('/api/database', async (req, res) => {
     }
 
     const dbInfo = await getDatabaseInfo(pool);
-    
+
     // Organizar la información por tablas
     const tables = {};
     dbInfo.forEach(row => {
@@ -1701,11 +1795,48 @@ app.post('/api/database/reinit', async (req, res) => {
     dbInitialized = false;
     await initializeDatabase(pool);
     dbInitialized = true;
-    
+
     successResponse(res, { initialized: true }, '✅ Base de datos reinicializada correctamente');
   } catch (error) {
     console.error('❌ Error reinicializando BD:', error);
     errorResponse(res, 'Error reinicializando la base de datos', 500, error.message);
+  }
+});
+
+// RUTA SEEDERS - Ejecutar seeders
+app.post('/api/seeders', async (req, res) => {
+  try {
+    console.log('🌱 Ejecutando seeders...');
+
+    // Ejecutar seeder de camiones pasando el pool de conexiones
+    const result = await seedCamiones(pool);
+
+    successResponse(res, {
+      seeders: ['camiones'],
+      camiones: result,
+      message: 'Seeders ejecutados correctamente'
+    }, '✅ Seeders ejecutados exitosamente');
+  } catch (error) {
+    console.error('❌ Error ejecutando seeders:', error);
+    errorResponse(res, 'Error ejecutando seeders', 500, error.message);
+  }
+});
+
+// RUTA SEEDERS CAMIONES - Ejecutar solo seeder de camiones
+app.post('/api/seeders/camiones', async (req, res) => {
+  try {
+    console.log('🚛 Ejecutando seeder de camiones...');
+
+    // Ejecutar seeder de camiones pasando el pool de conexiones
+    const result = await seedCamiones(pool);
+
+    successResponse(res, {
+      camiones: result,
+      message: 'Seeder de camiones ejecutado correctamente'
+    }, '✅ Seeder de camiones ejecutado exitosamente');
+  } catch (error) {
+    console.error('❌ Error ejecutando seeder de camiones:', error);
+    errorResponse(res, 'Error ejecutando seeder de camiones', 500, error.message);
   }
 });
 

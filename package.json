@@ -12,7 +12,9 @@
     "lint:fix": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0",
     "pre-commit": "npm run lint:check",
-    "validate": "npm run lint:check && echo '✅ Código validado correctamente'"
+    "validate": "npm run lint:check && echo '✅ Código validado correctamente'",
+    "seed": "node seeders/index.js",
+    "seed:camiones": "node seeders/camionesSeeder.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
