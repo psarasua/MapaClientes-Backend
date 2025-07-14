@@ -1939,7 +1939,7 @@ app.post('/api/seeders', async (req, res) => {
 
     // Ejecutar seeder de camiones pasando el pool de conexiones
     const camionesResult = await seedCamiones(pool);
-    
+
     // Ejecutar seeder de días de entrega pasando el pool de conexiones
     const diasResult = await seedDiasEntrega(pool);
 
