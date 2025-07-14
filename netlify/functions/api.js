@@ -4,7 +4,6 @@ import cors from 'cors';
 import serverless from 'serverless-http';
 import pkg from 'pg';
 import { initializeDatabase, checkTableExists, getDatabaseInfo } from '../../config/dbInit.js';
-import { runAllSeeders } from '../../seeders/index.js';
 
 // Cargar variables de entorno en desarrollo local
 if (process.env.NODE_ENV !== 'production') {
@@ -1013,7 +1012,6 @@ app.get('/api', async (req, res) => {
                 <a href="/api/database" class="test-button">📊 Info DB</a>
                 <button onclick="testConnection()" class="test-button">🔄 Test Conexión</button>
                 <button onclick="reinitDB()" class="test-button danger">🔁 Reinicializar DB</button>
-                <button onclick="runSeeders()" class="test-button success">🌱 Ejecutar Seeders</button>
                 <button onclick="refreshDbInfo()" class="test-button">🔄 Actualizar Info</button>
             </div>
             <div id="testResult"></div>
@@ -1124,24 +1122,6 @@ app.get('/api', async (req, res) => {
                 </div>
                 <div class="test-buttons">
                     <a href="/api/database" class="test-button">Probar</a>
-                </div>
-            </div>
-
-            <div class="endpoint-card">
-                <div class="method post">POST</div>
-                <div class="url">/api/database/reinit</div>
-                <div class="description">
-                    <strong>Reinicializar base de datos</strong><br>
-                    Crea las tablas y ejecuta seeders automáticamente.
-                </div>
-            </div>
-
-            <div class="endpoint-card">
-                <div class="method post">POST</div>
-                <div class="url">/api/seeders/run</div>
-                <div class="description">
-                    <strong>Ejecutar seeders manualmente</strong><br>
-                    Carga datos de ejemplo en las tablas (camiones, días de entrega, etc.).
                 </div>
             </div>
         </div>
@@ -1270,53 +1250,6 @@ app.get('/api', async (req, res) => {
                 button.textContent = originalText;
                 button.disabled = false;
             }
-        }
-
-        async function runSeeders() {
-            if (!confirm('¿Estás seguro de que quieres ejecutar los seeders? Esto agregará datos de ejemplo a las tablas.')) {
-                return;
-            }
-            
-            const button = event.target;
-            const originalText = button.textContent;
-            button.textContent = '🌱 Ejecutando...';
-            button.disabled = true;
-            
-            const resultDiv = document.getElementById('testResult');
-            
-            try {
-                const response = await fetch('/api/seeders/run', {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    resultDiv.innerHTML = \`
-                        <div class="alert alert-success">
-                            <strong>✅ Seeders ejecutados exitosamente!</strong><br>
-                            \${data.message}
-                        </div>
-                    \`;
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    resultDiv.innerHTML = \`
-                        <div class="alert alert-danger">
-                            <strong>❌ Error ejecutando seeders</strong><br>
-                            \${data.error}
-                        </div>
-                    \`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = \`
-                    <div class="alert alert-danger">
-                        <strong>❌ Error de red</strong><br>
-                        \${error.message}
-                    </div>
-                \`;
-            }
-            
-            button.textContent = originalText;
-            button.disabled = false;
         }
     </script>
 </body>
@@ -1479,6 +1412,24 @@ app.get('/api/health', async (req, res) => {
     errorResponse(res, '⚠️ Sistema con problemas', statusCode, healthCheck);
   }
 });
+
+// RUTAS DE CLIENTES
+
+// Validación de cliente
+const validateCliente = (cliente) => {
+  const errors = [];
+  if (!cliente.nombre || cliente.nombre.trim().length === 0) {
+    errors.push('El nombre es requerido');
+  }
+  if (cliente.nombre && cliente.nombre.length > 100) {
+    errors.push('El nombre no puede exceder 100 caracteres');
+  }
+  if (cliente.x && (isNaN(cliente.x) || cliente.x < -180 || cliente.x > 180)) {
+    errors.push('La coordenada X debe ser un número válido entre -180 y 180');
+  }
+  if (cliente.y && (isNaN(cliente.y) || cliente.y < -90 || cliente.y > 90)) {
+    errors.push('La coordenada Y debe ser un número válido entre -90 y 90');
+  }
   return errors;
 };
 
@@ -1755,19 +1706,6 @@ app.post('/api/database/reinit', async (req, res) => {
   } catch (error) {
     console.error('❌ Error reinicializando BD:', error);
     errorResponse(res, 'Error reinicializando la base de datos', 500, error.message);
-  }
-});
-
-// RUTA SEEDERS - Ejecutar seeders manualmente
-app.post('/api/seeders/run', async (req, res) => {
-  try {
-    console.log('🌱 Ejecutando seeders manualmente...');
-    const result = await runAllSeeders(pool);
-    
-    successResponse(res, result, '✅ Seeders ejecutados exitosamente');
-  } catch (error) {
-    console.error('❌ Error ejecutando seeders:', error);
-    errorResponse(res, 'Error ejecutando seeders', 500, error.message);
   }
 });
 

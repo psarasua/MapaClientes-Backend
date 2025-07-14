@@ -42,8 +42,8 @@ export async function seedCamiones() {
   }
 }
 
-// Ejecutar si se llama directamente
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Ejecutar si se llama directamente desde Node.js (no desde Netlify)
+if (typeof process !== 'undefined' && process.argv && process.argv[1] && process.argv[1].includes('camionesSeeder.js')) {
   seedCamiones()
     .then(() => {
       console.log('🎉 Seed completado exitosamente');

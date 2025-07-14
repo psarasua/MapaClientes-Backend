@@ -1,0 +1,29 @@
+{
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.alwaysShowStatus": true,
+  "eslint.format.enable": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "editor.formatOnSave": true,
+  "files.exclude": {
+    "node_modules/": true,
+    ".netlify/": true,
+    "*.log": true
+  },
+  "search.exclude": {
+    "node_modules/": true,
+    ".netlify/": true,
+    "*.log": true
+  },
+  "eslint.workingDirectories": [
+    "."
+  ],
+  "javascript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.preferences.includePackageJsonAutoImports": "auto"
+}
