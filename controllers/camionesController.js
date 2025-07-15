@@ -1,20 +1,28 @@
 // controllers/camionesController.js
-import { CamionModel } from '../models/camionesModel.js';
+import {
+  getAllCamionesModel,
+  getCamionByIdModel,
+  createCamionModel,
+  updateCamionModel,
+  deleteCamionModel,
+  isUsedCamionModel,
+} from "../models/camionesModel.js";
+import { successResponse, errorResponse } from "../utils/responses.js";
 
 // Obtener todos los camiones con paginación
 export const getAllCamiones = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || '';
+    const search = req.query.search || "";
 
-    const result = await CamionModel.getAll({ page, limit, search });
-    
-    // Devolver solo los datos sin wrapper
-    res.json(result.data);
+    const result = await getAllCamionesModel({ page, limit, search });
+
+    // Usar la función de respuesta estándar
+    successResponse(res, result.data, "Camiones obtenidos exitosamente");
   } catch (error) {
-    console.error('❌ Error al obtener camiones:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("❌ Error al obtener camiones:", error);
+    errorResponse(res, "Error interno del servidor", 500);
   }
 };
 
@@ -22,21 +30,21 @@ export const getAllCamiones = async (req, res) => {
 export const getCamionById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'ID inválido' });
+      return errorResponse(res, "ID inválido", 400);
     }
 
-    const camion = await CamionModel.getById(id);
+    const camion = await getCamionByIdModel(id);
 
     if (!camion) {
-      return res.status(404).json({ error: 'Camión no encontrado' });
+      return errorResponse(res, "Camión no encontrado", 404);
     }
 
-    res.json(camion);
+    successResponse(res, camion, "Camión obtenido exitosamente");
   } catch (error) {
-    console.error('❌ Error al obtener camión:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("❌ Error al obtener camión:", error);
+    errorResponse(res, "Error interno del servidor", 500);
   }
 };
 
@@ -44,25 +52,25 @@ export const getCamionById = async (req, res) => {
 export const createCamion = async (req, res) => {
   try {
     const camionData = req.body;
-    
+
     // Validar datos
     const validationErrors = validateCamion(camionData);
     if (validationErrors.length > 0) {
-      return res.status(400).json({ error: 'Datos inválidos', details: validationErrors });
+      return errorResponse(res, "Datos inválidos", 400, validationErrors);
     }
 
-    const camion = await CamionModel.create(camionData);
+    const camion = await createCamionModel(camionData);
 
-    res.status(201).json(camion);
+    successResponse(res, camion, "Camión creado exitosamente", 201);
   } catch (error) {
-    console.error('❌ Error al crear camión:', error);
-    
+    console.error("❌ Error al crear camión:", error);
+
     // Error de clave única (PostgreSQL)
-    if (error.code === '23505') {
-      return res.status(409).json({ error: 'Ya existe un camión con esa descripción' });
+    if (error.code === "23505") {
+      return errorResponse(res, "Ya existe un camión con esa descripción", 409);
     }
-    
-    res.status(500).json({ error: 'Error interno del servidor' });
+
+    errorResponse(res, "Error interno del servidor", 500);
   }
 };
 
@@ -73,30 +81,30 @@ export const updateCamion = async (req, res) => {
     const camionData = req.body;
 
     if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'ID inválido' });
+      return errorResponse(res, "ID inválido", 400);
     }
 
     // Validar datos
     const validationErrors = validateCamion(camionData);
     if (validationErrors.length > 0) {
-      return res.status(400).json({ error: 'Datos inválidos', details: validationErrors });
+      return errorResponse(res, "Datos inválidos", 400, validationErrors);
     }
 
-    const camion = await CamionModel.update(id, camionData);
+    const camion = await updateCamionModel(id, camionData);
 
     if (!camion) {
-      return res.status(404).json({ error: 'Camión no encontrado' });
+      return errorResponse(res, "Camión no encontrado", 404);
     }
 
-    res.json(camion);
+    successResponse(res, camion, "Camión actualizado exitosamente");
   } catch (error) {
-    console.error('❌ Error al actualizar camión:', error);
-    
-    if (error.code === '23505') {
-      return res.status(409).json({ error: 'Ya existe un camión con esa descripción' });
+    console.error("❌ Error al actualizar camión:", error);
+
+    if (error.code === "23505") {
+      return errorResponse(res, "Ya existe un camión con esa descripción", 409);
     }
-    
-    res.status(500).json({ error: 'Error interno del servidor' });
+
+    errorResponse(res, "Error interno del servidor", 500);
   }
 };
 
@@ -106,30 +114,38 @@ export const deleteCamion = async (req, res) => {
     const { id } = req.params;
 
     if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'ID inválido' });
+      return errorResponse(res, "ID inválido", 400);
     }
 
     // Verificar si el camión está siendo usado
-    const isUsed = await CamionModel.isUsed(id);
+    const isUsed = await isUsedCamionModel(id);
     if (isUsed) {
-      return res.status(400).json({ error: 'No se puede eliminar el camión porque está siendo usado' });
+      return errorResponse(
+        res,
+        "No se puede eliminar el camión porque está siendo usado",
+        400
+      );
     }
 
-    const camion = await CamionModel.delete(id);
+    const camion = await deleteCamionModel(id);
 
     if (!camion) {
-      return res.status(404).json({ error: 'Camión no encontrado' });
+      return errorResponse(res, "Camión no encontrado", 404);
     }
 
-    res.json(camion);
+    successResponse(res, camion, "Camión eliminado exitosamente");
   } catch (error) {
-    console.error('❌ Error al eliminar camión:', error);
-    
-    if (error.code === '23503') {
-      return res.status(400).json({ error: 'No se puede eliminar el camión porque está siendo usado' });
+    console.error("❌ Error al eliminar camión:", error);
+
+    if (error.code === "23503") {
+      return errorResponse(
+        res,
+        "No se puede eliminar el camión porque está siendo usado",
+        400
+      );
     }
-    
-    res.status(500).json({ error: 'Error interno del servidor' });
+
+    errorResponse(res, "Error interno del servidor", 500);
   }
 };
 
@@ -137,17 +153,21 @@ export const deleteCamion = async (req, res) => {
 export const validateCamion = (camionData) => {
   const errors = [];
 
-  if (!camionData || typeof camionData !== 'object') {
-    errors.push('Los datos del camión son requeridos');
+  if (!camionData || typeof camionData !== "object") {
+    errors.push("Los datos del camión son requeridos");
     return errors;
   }
 
-  if (!camionData.descripcion || typeof camionData.descripcion !== 'string' || camionData.descripcion.trim() === '') {
-    errors.push('La descripción es requerida y debe ser un texto válido');
+  if (
+    !camionData.descripcion ||
+    typeof camionData.descripcion !== "string" ||
+    camionData.descripcion.trim() === ""
+  ) {
+    errors.push("La descripción es requerida y debe ser un texto válido");
   }
 
   if (camionData.descripcion && camionData.descripcion.length > 255) {
-    errors.push('La descripción no puede exceder 255 caracteres');
+    errors.push("La descripción no puede exceder 255 caracteres");
   }
 
   return errors;

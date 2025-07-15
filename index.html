@@ -109,31 +109,9 @@
     </div>
 
     <script>
-        // Intentar cargar la documentación de la API
+        // Redirigir directamente a la API después de 2 segundos
         setTimeout(() => {
-            fetch('/api')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = '/api';
-                    } else {
-                        document.querySelector('.container').innerHTML = `
-                            <h1>🗺️ MapaClientes API</h1>
-                            <p>❌ Error cargando la API</p>
-                            <a href="/api" class="button">🔄 Reintentar</a>
-                            <a href="/api/ping" class="button">🏓 Ping</a>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    document.querySelector('.container').innerHTML = `
-                        <h1>🗺️ MapaClientes API</h1>
-                        <p>⚠️ La API no está disponible</p>
-                        <a href="/api" class="button">🔄 Reintentar</a>
-                        <a href="/api/ping" class="button">🏓 Ping</a>
-                    `;
-                });
+            window.location.href = '/api';
         }, 2000);
     </script>
 </body>

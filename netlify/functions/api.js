@@ -648,6 +648,12 @@ app.get('/api', async (req, res) => {
         // Generar HTML para tabla simple
         tableInfo = Object.values(tablesMap).map(table =>
           `<tr><td>${table.name}</td><td>${table.totalColumns} columnas</td></tr>`,
+        ).join('');
+
+        // Generar HTML detallado
+        detailedDbInfo = `
+          <div class="db-details-container">
+            <div class="db-stats-section">
               <div class="db-info-card">
                 <h4>📊 Estadísticas Generales</h4>
                 <div class="info-item"><strong>Tipo:</strong> PostgreSQL</div>

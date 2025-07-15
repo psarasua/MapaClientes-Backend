@@ -127,3 +127,10 @@ export class DiaEntregaModel {
     return result.rows;
   }
 }
+
+// Exportar funciones individuales para los controladores
+export const getAllDiasEntregaModel = (filters = {}) => DiaEntregaModel.getAll(filters);
+export const getDiaEntregaByIdModel = (id) => DiaEntregaModel.getById(id);
+export const createDiaEntregaModel = (diaData) => DiaEntregaModel.create(diaData);
+export const updateDiaEntregaModel = (id, diaData) => DiaEntregaModel.update(id, diaData);
+export const deleteDiaEntregaModel = (id) => DiaEntregaModel.delete(id);

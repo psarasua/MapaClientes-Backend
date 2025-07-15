@@ -129,3 +129,11 @@ export class CamionModel {
     return result.rows;
   }
 }
+
+// Exportar funciones individuales para los controladores
+export const getAllCamionesModel = (filters = {}) => CamionModel.getAll(filters);
+export const getCamionByIdModel = (id) => CamionModel.getById(id);
+export const createCamionModel = (camionData) => CamionModel.create(camionData);
+export const updateCamionModel = (id, camionData) => CamionModel.update(id, camionData);
+export const deleteCamionModel = (id) => CamionModel.delete(id);
+export const isUsedCamionModel = (id) => CamionModel.isUsed(id);

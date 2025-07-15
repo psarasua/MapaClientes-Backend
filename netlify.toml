@@ -3,6 +3,10 @@
   command = "npm install"
   publish = "."
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["pg-native"]
+
 [dev]
   functions = "netlify/functions"
   publish = "."

@@ -172,3 +172,12 @@ export class ClienteModel {
     return result.rows;
   }
 }
+
+// Exportar funciones individuales para los controladores
+export const getAllClientesModel = (filters = {}) => ClienteModel.getAll(filters);
+export const getClienteByIdModel = (id) => ClienteModel.getById(id);
+export const createClienteModel = (clienteData) => ClienteModel.create(clienteData);
+export const updateClienteModel = (id, clienteData) => ClienteModel.update(id, clienteData);
+export const patchClienteModel = (id, updates) => ClienteModel.patch(id, updates);
+export const deleteClienteModel = (id) => ClienteModel.delete(id);
+export const getClienteUbicacionModel = (id) => ClienteModel.getUbicacion(id);
