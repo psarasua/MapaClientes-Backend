@@ -1,136 +1,136 @@
 // models/diasEntregaModel.js
-import pool from '../config/database.js';
+import pool from "../config/database.js";
 
-export class DiaEntregaModel {
-  // Obtener todos los días de entrega con paginación y filtros
-  static async getAll({ page = 1, limit = 10, search = '' }) {
-    const offset = (page - 1) * limit;
-    
-    // Construir query dinámicamente
-    let whereClause = 'WHERE 1=1';
-    const params = [];
-    let paramCount = 0;
+// Obtener todos los días de entrega con paginación y filtros
+export async function getAllDiasEntrega({ page = 1, limit = 10, search = "" }) {
+  const offset = (page - 1) * limit;
 
-    if (search) {
-      paramCount++;
-      whereClause += ` AND descripcion ILIKE $${paramCount}`;
-      params.push(`%${search}%`);
-    }
+  // Construir query dinámicamente
+  let whereClause = "WHERE 1=1";
+  const params = [];
+  let paramCount = 0;
 
-    // Contar total de registros
-    const countQuery = `SELECT COUNT(*) FROM dias_entrega ${whereClause}`;
-    const countResult = await pool.query(countQuery, params);
-    const total = parseInt(countResult.rows[0].count);
-
-    // Obtener registros paginados
+  if (search) {
     paramCount++;
-    const limit_param = paramCount;
-    paramCount++;
-    const offset_param = paramCount;
-    
-    const query = `
-      SELECT id, descripcion
-      FROM dias_entrega 
-      ${whereClause}
-      ORDER BY id ASC
-      LIMIT $${limit_param} OFFSET $${offset_param}
-    `;
-    
-    params.push(limit, offset);
-    const result = await pool.query(query, params);
-
-    return {
-      data: result.rows,
-      total,
-    };
+    whereClause += ` AND descripcion ILIKE $${paramCount}`;
+    params.push(`%${search}%`);
   }
 
-  // Obtener día de entrega por ID
-  static async getById(id) {
-    const query = 'SELECT * FROM dias_entrega WHERE id = $1';
-    const result = await pool.query(query, [id]);
-    
-    return result.rows[0] || null;
-  }
+  // Contar total de registros
+  const countQuery = `SELECT COUNT(*) FROM dias_entrega ${whereClause}`;
+  const countResult = await pool.query(countQuery, params);
+  const total = parseInt(countResult.rows[0].count);
 
-  // Crear nuevo día de entrega
-  static async create(diaData) {
-    const { descripcion } = diaData;
+  // Obtener registros paginados
+  paramCount++;
+  const limit_param = paramCount;
+  paramCount++;
+  const offset_param = paramCount;
 
-    const query = `
-      INSERT INTO dias_entrega (descripcion)
-      VALUES ($1)
-      RETURNING *
-    `;
+  const query = `
+    SELECT id, descripcion
+    FROM dias_entrega 
+    ${whereClause}
+    ORDER BY id ASC
+    LIMIT $${limit_param} OFFSET $${offset_param}
+  `;
 
-    const result = await pool.query(query, [descripcion]);
-    return result.rows[0];
-  }
+  params.push(limit, offset);
+  const result = await pool.query(query, params);
 
-  // Actualizar día de entrega
-  static async update(id, diaData) {
-    const { descripcion } = diaData;
-
-    const query = `
-      UPDATE dias_entrega 
-      SET descripcion = $1
-      WHERE id = $2
-      RETURNING *
-    `;
-
-    const result = await pool.query(query, [descripcion, id]);
-    return result.rows[0] || null;
-  }
-
-  // Eliminar día de entrega
-  static async delete(id) {
-    const query = 'DELETE FROM dias_entrega WHERE id = $1 RETURNING *';
-    const result = await pool.query(query, [id]);
-    return result.rows[0] || null;
-  }
-
-  // Verificar si el día de entrega está siendo usado
-  static async isUsed(id) {
-    const checkUsageQuery = `
-      SELECT COUNT(*) as count 
-      FROM camiones_dias 
-      WHERE dia_entrega_id = $1
-    `;
-
-    const usageResult = await pool.query(checkUsageQuery, [id]);
-    return usageResult.rows[0].count > 0;
-  }
-
-  // Obtener días de entrega con sus camiones asignados
-  static async getWithCamiones() {
-    const query = `
-      SELECT 
-        d.id,
-        d.descripcion,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', c.id,
-              'descripcion', c.descripcion
-            )
-          ) FILTER (WHERE c.id IS NOT NULL),
-          '[]'
-        ) as camiones_asignados
-      FROM dias_entrega d
-      LEFT JOIN camiones_dias cd ON d.id = cd.dia_entrega_id
-      LEFT JOIN camiones c ON cd.camion_id = c.id
-      GROUP BY d.id, d.descripcion
-      ORDER BY d.id ASC
-    `;
-
-    const result = await pool.query(query);
-    return result.rows;
-  }
+  return {
+    data: result.rows,
+    total,
+  };
 }
 
-// Exportar funciones individuales para los controladores
-export const getAllDiasEntregaModel = (filters = {}) => DiaEntregaModel.getAll(filters);
-export const getDiaEntregaByIdModel = (id) => DiaEntregaModel.getById(id);
-export const createDiaEntregaModel = (diaData) => DiaEntregaModel.create(diaData);
-export const updateDiaEntregaModel = (id, diaData) => DiaEntregaModel.update(id, diaData);
-export const deleteDiaEntregaModel = (id) => DiaEntregaModel.delete(id);
+// Obtener día de entrega por ID
+export async function getDiaEntregaById(id) {
+  const query = "SELECT * FROM dias_entrega WHERE id = $1";
+  const result = await pool.query(query, [id]);
+
+  return result.rows[0] || null;
+}
+
+// Crear nuevo día de entrega
+export async function createDiaEntrega(diaData) {
+  const { descripcion } = diaData;
+
+  const query = `
+    INSERT INTO dias_entrega (descripcion)
+    VALUES ($1)
+    RETURNING *
+  `;
+
+  const result = await pool.query(query, [descripcion]);
+  return result.rows[0];
+}
+
+// Actualizar día de entrega
+export async function updateDiaEntrega(id, diaData) {
+  const { descripcion } = diaData;
+
+  const query = `
+    UPDATE dias_entrega 
+    SET descripcion = $1
+    WHERE id = $2
+    RETURNING *
+  `;
+
+  const result = await pool.query(query, [descripcion, id]);
+  return result.rows[0] || null;
+}
+
+// Eliminar día de entrega
+export async function deleteDiaEntrega(id) {
+  const query = "DELETE FROM dias_entrega WHERE id = $1 RETURNING *";
+  const result = await pool.query(query, [id]);
+  return result.rows[0] || null;
+}
+
+// Verificar si el día de entrega está siendo usado
+export async function isDiaEntregaUsed(id) {
+  const checkUsageQuery = `
+    SELECT COUNT(*) as count 
+    FROM camiones_dias 
+    WHERE dia_entrega_id = $1
+  `;
+
+  const usageResult = await pool.query(checkUsageQuery, [id]);
+  return usageResult.rows[0].count > 0;
+}
+
+// Obtener días de entrega con sus camiones asignados
+export async function getDiasEntregaWithCamiones() {
+  const query = `
+    SELECT 
+      d.id,
+      d.descripcion,
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'id', c.id,
+            'descripcion', c.descripcion
+          )
+        ) FILTER (WHERE c.id IS NOT NULL),
+        '[]'
+      ) as camiones_asignados
+    FROM dias_entrega d
+    LEFT JOIN camiones_dias cd ON d.id = cd.dia_entrega_id
+    LEFT JOIN camiones c ON cd.camion_id = c.id
+    GROUP BY d.id, d.descripcion
+    ORDER BY d.id ASC
+  `;
+
+  const result = await pool.query(query);
+  return result.rows;
+}
+
+// Exportar funciones individuales para los controladores (compatibilidad hacia atrás)
+export const getAllDiasEntregaModel = (filters = {}) =>
+  getAllDiasEntrega(filters);
+export const getDiaEntregaByIdModel = (id) => getDiaEntregaById(id);
+export const createDiaEntregaModel = (diaData) => createDiaEntrega(diaData);
+export const updateDiaEntregaModel = (id, diaData) =>
+  updateDiaEntrega(id, diaData);
+export const deleteDiaEntregaModel = (id) => deleteDiaEntrega(id);

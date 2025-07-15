@@ -81,22 +81,22 @@ export const updateCamion = async (req, res) => {
     const camionData = req.body;
 
     if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID inválido', 400);
+      return errorResponse(res, "ID inválido", 400);
     }
 
     // Validar datos
     const validationErrors = validateCamion(camionData);
     if (validationErrors.length > 0) {
-      return errorResponse(res, 'Datos inválidos', 400, validationErrors);
+      return errorResponse(res, "Datos inválidos", 400, validationErrors);
     }
 
     const camion = await updateCamionModel(id, camionData);
 
     if (!camion) {
-      return errorResponse(res, 'Camión no encontrado', 404);
+      return errorResponse(res, "Camión no encontrado", 404);
     }
 
-    successResponse(res, camion, 'Camión actualizado exitosamente');
+    successResponse(res, camion, "Camión actualizado exitosamente");
   } catch (error) {
     console.error("❌ Error al actualizar camión:", error);
 
@@ -153,21 +153,21 @@ export const deleteCamion = async (req, res) => {
 export const validateCamion = (camionData) => {
   const errors = [];
 
-  if (!camionData || typeof camionData !== 'object') {
-    errors.push('Los datos del camión son requeridos');
+  if (!camionData || typeof camionData !== "object") {
+    errors.push("Los datos del camión son requeridos");
     return errors;
   }
 
   if (
     !camionData.descripcion ||
-    typeof camionData.descripcion !== 'string' ||
-    camionData.descripcion.trim() === ''
+    typeof camionData.descripcion !== "string" ||
+    camionData.descripcion.trim() === ""
   ) {
-    errors.push('La descripción es requerida y debe ser un texto válido');
+    errors.push("La descripción es requerida y debe ser un texto válido");
   }
 
   if (camionData.descripcion && camionData.descripcion.length > 255) {
-    errors.push('La descripción no puede exceder 255 caracteres');
+    errors.push("La descripción no puede exceder 255 caracteres");
   }
 
   return errors;

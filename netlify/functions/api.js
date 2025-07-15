@@ -157,14 +157,14 @@ app.use(
 );
 
 // Middleware personalizado para manejar raw body en Netlify Functions
-app.use(express.raw({ type: 'application/json', limit: '10mb' }));
+app.use(express.raw({ type: "application/json", limit: "10mb" }));
 app.use((req, res, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
     try {
-      const jsonString = req.body.toString('utf8');
+      const jsonString = req.body.toString("utf8");
       req.body = JSON.parse(jsonString);
     } catch (error) {
-      console.error('❌ Error parseando raw body:', error);
+      console.error("❌ Error parseando raw body:", error);
     }
   }
   next();
