@@ -80,8 +80,13 @@ export const updateCamion = async (req, res) => {
     const { id } = req.params;
     const camionData = req.body;
 
-    // Log para debugging
-    console.log("🔍 Actualizando camión:", { id, camionData });
+    // Log para debugging - información más detallada
+    console.log("🔍 Actualizando camión:");
+    console.log("- ID:", id);
+    console.log("- req.body:", req.body);
+    console.log("- req.body type:", typeof req.body);
+    console.log("- req.body JSON:", JSON.stringify(req.body));
+    console.log("- camionData:", camionData);
 
     if (!id || isNaN(id)) {
       console.log("❌ ID inválido:", id);
