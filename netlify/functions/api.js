@@ -1,29 +1,39 @@
 // netlify/functions/api.js
-import express from 'express';
-import cors from 'cors';
-import serverless from 'serverless-http';
-import pkg from 'pg';
-import { initializeDatabase, checkTableExists, getDatabaseInfo } from '../../config/dbInit.js';
-import { seedCamiones } from '../../seeders/camionesSeeder.js';
-import { seedDiasEntrega } from '../../seeders/diasEntregaSeeder.js';
+import express from "express";
+import cors from "cors";
+import serverless from "serverless-http";
+import pkg from "pg";
+import {
+  initializeDatabase,
+  checkTableExists,
+  getDatabaseInfo,
+} from "../../config/dbInit.js";
+import { seedCamiones } from "../../seeders/camionesSeeder.js";
+import { seedDiasEntrega } from "../../seeders/diasEntregaSeeder.js";
 
 // Importar rutas modularizadas
-import camionesRoutes from '../../routes/camiones.js';
-import clientesRoutes from '../../routes/clientes.js';
-import diasEntregaRoutes from '../../routes/diasEntrega.js';
-import healthRoutes from '../../routes/health.js';
-import pingRoutes from '../../routes/ping.js';
+import camionesRoutes from "../../routes/camiones.js";
+import clientesRoutes from "../../routes/clientes.js";
+import diasEntregaRoutes from "../../routes/diasEntrega.js";
+import healthRoutes from "../../routes/health.js";
+import pingRoutes from "../../routes/ping.js";
 
 // Cargar variables de entorno en desarrollo local
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
   try {
-    import('dotenv').then(dotenv => {
-      dotenv.config();
-    }).catch(() => {
-      console.log('dotenv no disponible, usando variables de entorno del sistema');
-    });
+    import("dotenv")
+      .then((dotenv) => {
+        dotenv.config();
+      })
+      .catch(() => {
+        console.log(
+          "dotenv no disponible, usando variables de entorno del sistema"
+        );
+      });
   } catch (error) {
-    console.log('dotenv no disponible, usando variables de entorno del sistema');
+    console.log(
+      "dotenv no disponible, usando variables de entorno del sistema"
+    );
   }
 }
 
@@ -31,11 +41,11 @@ const { Pool } = pkg;
 
 // Validación de variables de entorno críticas
 const validateEnvironmentVariables = () => {
-  const requiredVars = ['DATABASE_URL'];
+  const requiredVars = ["DATABASE_URL"];
   const missingVars = [];
   const warnings = [];
 
-  requiredVars.forEach(varName => {
+  requiredVars.forEach((varName) => {
     if (!process.env[varName]) {
       missingVars.push(varName);
     }
@@ -43,17 +53,21 @@ const validateEnvironmentVariables = () => {
 
   // Verificar si DATABASE_URL está definida
   if (!process.env.DATABASE_URL) {
-    warnings.push('⚠️ DATABASE_URL no está definida, usando cadena de conexión por defecto');
-    warnings.push('📋 Para producción, configura DATABASE_URL en las variables de entorno');
+    warnings.push(
+      "⚠️ DATABASE_URL no está definida, usando cadena de conexión por defecto"
+    );
+    warnings.push(
+      "📋 Para producción, configura DATABASE_URL en las variables de entorno"
+    );
   } else {
-    console.log('✅ DATABASE_URL configurada correctamente');
+    console.log("✅ DATABASE_URL configurada correctamente");
   }
 
   // Mostrar warnings
   if (warnings.length > 0) {
-    console.log('\n🔔 AVISOS DE CONFIGURACIÓN:');
-    warnings.forEach(warning => console.log(warning));
-    console.log('');
+    console.log("\n🔔 AVISOS DE CONFIGURACIÓN:");
+    warnings.forEach((warning) => console.log(warning));
+    console.log("");
   }
 
   return {
@@ -68,7 +82,9 @@ const envValidation = validateEnvironmentVariables();
 
 // Configuración de la base de datos usando variables de entorno
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_us8Q7AjPFHUT@ep-rapid-grass-acjetl0d-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  connectionString:
+    process.env.DATABASE_URL ||
+    "postgresql://neondb_owner:npg_us8Q7AjPFHUT@ep-rapid-grass-acjetl0d-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
   ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
@@ -76,12 +92,12 @@ const pool = new Pool({
 });
 
 // Test de conexión inicial
-pool.on('connect', () => {
-  console.log('🔗 Conectado a PostgreSQL');
+pool.on("connect", () => {
+  console.log("🔗 Conectado a PostgreSQL");
 });
 
-pool.on('error', (err) => {
-  console.error('❌ Error inesperado en el cliente de PostgreSQL', err);
+pool.on("error", (err) => {
+  console.error("❌ Error inesperado en el cliente de PostgreSQL", err);
 });
 
 // Inicialización de la base de datos
@@ -91,28 +107,34 @@ let dbInitError = null;
 const initDB = async () => {
   if (!dbInitialized) {
     try {
-      console.log('🚀 Iniciando verificación de base de datos...');
-      console.log('🔗 DATABASE_URL configurada:', process.env.DATABASE_URL ? 'Sí' : 'No (usando fallback)');
-      console.log('🔗 String de conexión:', process.env.DATABASE_URL ? '[CONFIGURADO]' : '[USANDO FALLBACK]');
+      console.log("🚀 Iniciando verificación de base de datos...");
+      console.log(
+        "🔗 DATABASE_URL configurada:",
+        process.env.DATABASE_URL ? "Sí" : "No (usando fallback)"
+      );
+      console.log(
+        "🔗 String de conexión:",
+        process.env.DATABASE_URL ? "[CONFIGURADO]" : "[USANDO FALLBACK]"
+      );
 
       // Verificar conexión primero
-      console.log('⏳ Intentando conectar a PostgreSQL...');
+      console.log("⏳ Intentando conectar a PostgreSQL...");
       const client = await pool.connect();
-      console.log('✅ Conexión a PostgreSQL establecida');
+      console.log("✅ Conexión a PostgreSQL establecida");
       client.release();
 
       // Inicializar tablas
-      console.log('⏳ Iniciando creación/verificación de tablas...');
+      console.log("⏳ Iniciando creación/verificación de tablas...");
       await initializeDatabase(pool);
 
       dbInitialized = true;
       dbInitError = null;
-      console.log('✅ Base de datos inicializada correctamente');
+      console.log("✅ Base de datos inicializada correctamente");
     } catch (error) {
-      console.error('❌ Error inicializando la base de datos:', error);
-      console.error('❌ Stack trace:', error.stack);
-      console.error('❌ Error code:', error.code);
-      console.error('❌ Error details:', error.detail);
+      console.error("❌ Error inicializando la base de datos:", error);
+      console.error("❌ Stack trace:", error.stack);
+      console.error("❌ Error code:", error.code);
+      console.error("❌ Error details:", error.detail);
       dbInitError = error;
       // No bloqueamos la aplicación, pero registramos el error
     }
@@ -125,12 +147,14 @@ initDB();
 const app = express();
 
 // Middlewares de seguridad y configuración
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    credentials: true,
+  })
+);
 
 // Middleware personalizado para manejar raw body en Netlify Functions
 app.use(express.raw({ type: 'application/json', limit: '10mb' }));
@@ -139,7 +163,6 @@ app.use((req, res, next) => {
     try {
       const jsonString = req.body.toString('utf8');
       req.body = JSON.parse(jsonString);
-      console.log('✅ Raw body parseado correctamente:', req.body);
     } catch (error) {
       console.error('❌ Error parseando raw body:', error);
     }
@@ -147,7 +170,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Middleware de logging simple
 app.use((req, res, next) => {
@@ -156,7 +179,12 @@ app.use((req, res, next) => {
 });
 
 // Funciones de respuesta
-const successResponse = (res, data, message = 'Operación exitosa', statusCode = 200) => {
+const successResponse = (
+  res,
+  data,
+  message = "Operación exitosa",
+  statusCode = 200
+) => {
   return res.status(statusCode).json({
     success: true,
     message,
@@ -165,7 +193,12 @@ const successResponse = (res, data, message = 'Operación exitosa', statusCode =
   });
 };
 
-const errorResponse = (res, message = 'Error en la operación', statusCode = 400, error = null) => {
+const errorResponse = (
+  res,
+  message = "Error en la operación",
+  statusCode = 400,
+  error = null
+) => {
   return res.status(statusCode).json({
     success: false,
     error: message,
@@ -175,35 +208,41 @@ const errorResponse = (res, message = 'Error en la operación', statusCode = 400
 };
 
 // Ruta raíz - Página de bienvenida con índice de la API
-app.get('/', async (req, res) => {
+app.get("/", async (req, res) => {
   try {
     // Verificar estado de la base de datos
-    let dbStatus = '🔴 Desconectada';
-    let dbDetails = '';
-    let dbInitStatus = '🔴 No inicializada';
+    let dbStatus = "🔴 Desconectada";
+    let dbDetails = "";
+    let dbInitStatus = "🔴 No inicializada";
 
     try {
       const dbStart = Date.now();
-      await pool.query('SELECT 1');
+      await pool.query("SELECT 1");
       const dbTime = Date.now() - dbStart;
-      dbStatus = '🟢 Conectada';
+      dbStatus = "🟢 Conectada";
       dbDetails = `(${dbTime}ms)`;
     } catch (error) {
-      dbStatus = '🔴 Error de conexión';
+      dbStatus = "🔴 Error de conexión";
       dbDetails = `(${error.message})`;
     }
 
     if (dbInitialized) {
-      dbInitStatus = '🟢 Inicializada correctamente';
+      dbInitStatus = "🟢 Inicializada correctamente";
     } else if (dbInitError) {
       dbInitStatus = `🔴 Error: ${dbInitError.message}`;
     }
 
     // Verificar variables de entorno
     const envStatus = {
-      DATABASE_URL: process.env.DATABASE_URL ? '🟢 Configurada' : '🔴 No configurada',
-      NODE_ENV: process.env.NODE_ENV ? `🟢 ${process.env.NODE_ENV}` : '🟡 No definida',
-      CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)',
+      DATABASE_URL: process.env.DATABASE_URL
+        ? "🟢 Configurada"
+        : "🔴 No configurada",
+      NODE_ENV: process.env.NODE_ENV
+        ? `🟢 ${process.env.NODE_ENV}`
+        : "🟡 No definida",
+      CORS_ORIGIN: process.env.CORS_ORIGIN
+        ? `🟢 ${process.env.CORS_ORIGIN}`
+        : "🟡 * (por defecto)",
     };
 
     const html = `
@@ -330,9 +369,13 @@ app.get('/', async (req, res) => {
                 </div>
                 <div class="status-card">
                     <h3>🔧 Variables de Entorno</h3>
-                    <p><strong>DATABASE_URL:</strong> ${envStatus.DATABASE_URL}</p>
+                    <p><strong>DATABASE_URL:</strong> ${
+                      envStatus.DATABASE_URL
+                    }</p>
                     <p><strong>NODE_ENV:</strong> ${envStatus.NODE_ENV}</p>
-                    <p><strong>CORS_ORIGIN:</strong> ${envStatus.CORS_ORIGIN}</p>
+                    <p><strong>CORS_ORIGIN:</strong> ${
+                      envStatus.CORS_ORIGIN
+                    }</p>
                 </div>
             </div>
         </div>
@@ -533,52 +576,58 @@ app.get('/', async (req, res) => {
 </html>
     `;
 
-    res.setHeader('Content-Type', 'text/html');
+    res.setHeader("Content-Type", "text/html");
     res.send(html);
   } catch (error) {
-    console.error('❌ Error en ruta raíz:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("❌ Error en ruta raíz:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 // Ruta principal con información de la API
-app.get('/api', async (req, res) => {
+app.get("/api", async (req, res) => {
   try {
     // Verificar estado de la base de datos
-    let dbStatus = '🔴 Desconectada';
-    let dbDetails = '';
-    let dbInitStatus = '🔴 No inicializada';
+    let dbStatus = "🔴 Desconectada";
+    let dbDetails = "";
+    let dbInitStatus = "🔴 No inicializada";
     let dbResponseTime = 0;
 
     try {
       const dbStart = Date.now();
-      await pool.query('SELECT 1');
+      await pool.query("SELECT 1");
       dbResponseTime = Date.now() - dbStart;
-      dbStatus = '🟢 Conectada';
+      dbStatus = "🟢 Conectada";
       dbDetails = `${dbResponseTime}ms`;
     } catch (error) {
-      dbStatus = '🔴 Error de conexión';
+      dbStatus = "🔴 Error de conexión";
       dbDetails = error.message;
     }
 
     if (dbInitialized) {
-      dbInitStatus = '🟢 Inicializada correctamente';
+      dbInitStatus = "🟢 Inicializada correctamente";
     } else if (dbInitError) {
       dbInitStatus = `🔴 Error: ${dbInitError.message}`;
     }
 
     // Verificar variables de entorno
     const envStatus = {
-      DATABASE_URL: process.env.DATABASE_URL ? '🟢 Configurada' : '🔴 No configurada',
-      NODE_ENV: process.env.NODE_ENV ? `🟢 ${process.env.NODE_ENV}` : '🟡 No definida',
-      CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)',
+      DATABASE_URL: process.env.DATABASE_URL
+        ? "🟢 Configurada"
+        : "🔴 No configurada",
+      NODE_ENV: process.env.NODE_ENV
+        ? `🟢 ${process.env.NODE_ENV}`
+        : "🟡 No definida",
+      CORS_ORIGIN: process.env.CORS_ORIGIN
+        ? `🟢 ${process.env.CORS_ORIGIN}`
+        : "🟡 * (por defecto)",
     };
 
     // Obtener información detallada de la base de datos
     let dbInfo = {
       connected: false,
-      version: 'Desconocida',
-      size: 'Desconocido',
+      version: "Desconocida",
+      size: "Desconocido",
       tables: [],
       totalTables: 0,
       totalColumns: 0,
@@ -589,13 +638,13 @@ app.get('/api', async (req, res) => {
       },
     };
 
-    let tableInfo = '';
-    let detailedDbInfo = '';
+    let tableInfo = "";
+    let detailedDbInfo = "";
 
     try {
       if (dbInitialized) {
         // Información básica de la base de datos
-        const versionQuery = await pool.query('SELECT version() as version');
+        const versionQuery = await pool.query("SELECT version() as version");
         const sizeQuery = await pool.query(`
           SELECT 
             pg_database.datname,
@@ -634,7 +683,7 @@ app.get('/api', async (req, res) => {
 
         // Organizar información por tabla
         const tablesMap = {};
-        tablesDetailQuery.rows.forEach(row => {
+        tablesDetailQuery.rows.forEach((row) => {
           if (!tablesMap[row.table_name]) {
             tablesMap[row.table_name] = {
               name: row.table_name,
@@ -648,7 +697,7 @@ app.get('/api', async (req, res) => {
             tablesMap[row.table_name].columns.push({
               name: row.column_name,
               type: row.data_type,
-              nullable: row.is_nullable === 'YES',
+              nullable: row.is_nullable === "YES",
               default: row.column_default,
               position: row.ordinal_position,
             });
@@ -660,9 +709,12 @@ app.get('/api', async (req, res) => {
         dbInfo.totalColumns = tablesDetailQuery.rows.length;
 
         // Generar HTML para tabla simple
-        tableInfo = Object.values(tablesMap).map(table =>
-          `<tr><td>${table.name}</td><td>${table.totalColumns} columnas</td></tr>`,
-        ).join('');
+        tableInfo = Object.values(tablesMap)
+          .map(
+            (table) =>
+              `<tr><td>${table.name}</td><td>${table.totalColumns} columnas</td></tr>`
+          )
+          .join("");
 
         // Generar HTML detallado
         detailedDbInfo = `
@@ -671,17 +723,31 @@ app.get('/api', async (req, res) => {
               <div class="db-info-card">
                 <h4>📊 Estadísticas Generales</h4>
                 <div class="info-item"><strong>Tipo:</strong> PostgreSQL</div>
-                <div class="info-item"><strong>Versión:</strong> ${dbInfo.version.split(' ')[0]} ${dbInfo.version.split(' ')[1]}</div>
-                <div class="info-item"><strong>Tamaño BD:</strong> ${dbInfo.size}</div>
-                <div class="info-item"><strong>Total Tablas:</strong> ${dbInfo.totalTables}</div>
-                <div class="info-item"><strong>Total Columnas:</strong> ${dbInfo.totalColumns}</div>
+                <div class="info-item"><strong>Versión:</strong> ${
+                  dbInfo.version.split(" ")[0]
+                } ${dbInfo.version.split(" ")[1]}</div>
+                <div class="info-item"><strong>Tamaño BD:</strong> ${
+                  dbInfo.size
+                }</div>
+                <div class="info-item"><strong>Total Tablas:</strong> ${
+                  dbInfo.totalTables
+                }</div>
+                <div class="info-item"><strong>Total Columnas:</strong> ${
+                  dbInfo.totalColumns
+                }</div>
               </div>
               
               <div class="db-info-card">
                 <h4>🔗 Pool de Conexiones</h4>
-                <div class="info-item"><strong>Conexiones Totales:</strong> ${dbInfo.connectionPool.totalConnections}</div>
-                <div class="info-item"><strong>Conexiones Inactivas:</strong> ${dbInfo.connectionPool.idleConnections}</div>
-                <div class="info-item"><strong>Clientes Esperando:</strong> ${dbInfo.connectionPool.waitingClients}</div>
+                <div class="info-item"><strong>Conexiones Totales:</strong> ${
+                  dbInfo.connectionPool.totalConnections
+                }</div>
+                <div class="info-item"><strong>Conexiones Inactivas:</strong> ${
+                  dbInfo.connectionPool.idleConnections
+                }</div>
+                <div class="info-item"><strong>Clientes Esperando:</strong> ${
+                  dbInfo.connectionPool.waitingClients
+                }</div>
                 <div class="info-item"><strong>Tiempo Respuesta:</strong> ${dbResponseTime}ms</div>
               </div>
             </div>
@@ -689,7 +755,9 @@ app.get('/api', async (req, res) => {
           
           <div class="tables-detail-section">
             <h3>📋 Estructura Detallada de Tablas</h3>
-            ${Object.values(tablesMap).map(table => `
+            ${Object.values(tablesMap)
+              .map(
+                (table) => `
               <div class="table-detail-card">
                 <h4>📄 ${table.name}</h4>
                 <div class="table-meta">
@@ -697,23 +765,37 @@ app.get('/api', async (req, res) => {
                   <span class="badge">Columnas: ${table.totalColumns}</span>
                 </div>
                 <div class="columns-grid">
-                  ${table.columns.map(col => `
+                  ${table.columns
+                    .map(
+                      (col) => `
                     <div class="column-item">
                       <strong>${col.name}</strong>
                       <span class="column-type">${col.type}</span>
-                      ${col.nullable ? '<span class="nullable">NULL</span>' : '<span class="not-null">NOT NULL</span>'}
-                      ${col.default ? `<span class="default">Default: ${col.default}</span>` : ''}
+                      ${
+                        col.nullable
+                          ? '<span class="nullable">NULL</span>'
+                          : '<span class="not-null">NOT NULL</span>'
+                      }
+                      ${
+                        col.default
+                          ? `<span class="default">Default: ${col.default}</span>`
+                          : ""
+                      }
                     </div>
-                  `).join('')}
+                  `
+                    )
+                    .join("")}
                 </div>
               </div>
-            `).join('')}
+            `
+              )
+              .join("")}
           </div>
         `;
-
       }
     } catch (error) {
-      tableInfo = '<tr><td colspan="2">Error obteniendo información de tablas</td></tr>';
+      tableInfo =
+        '<tr><td colspan="2">Error obteniendo información de tablas</td></tr>';
       detailedDbInfo = `
         <div class="alert alert-danger">
           <strong>❌ Error obteniendo información de BD:</strong> ${error.message}
@@ -1101,7 +1183,9 @@ app.get('/api', async (req, res) => {
 
         ${detailedDbInfo}
 
-        ${tableInfo ? `
+        ${
+          tableInfo
+            ? `
         <div class="table-container">
             <h3>📋 Tablas de la Base de Datos</h3>
             <table>
@@ -1116,7 +1200,9 @@ app.get('/api', async (req, res) => {
                 </tbody>
             </table>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <h2>🌱 Seeders de Base de Datos</h2>
         
@@ -1556,91 +1642,104 @@ app.get('/api', async (req, res) => {
 </html>
     `;
 
-    res.setHeader('Content-Type', 'text/html');
+    res.setHeader("Content-Type", "text/html");
     res.send(html);
   } catch (error) {
-    console.error('❌ Error en documentación API:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("❌ Error en documentación API:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 // RUTA PING - Health check con información de base de datos
-app.get('/api/ping', async (req, res) => {
+app.get("/api/ping", async (req, res) => {
   try {
     const dbStart = Date.now();
-    const result = await pool.query('SELECT NOW() as current_time, version() as db_version');
+    const result = await pool.query(
+      "SELECT NOW() as current_time, version() as db_version"
+    );
     const dbTime = Date.now() - dbStart;
 
     const response = {
-      status: 'ok',
-      environment: process.env.NODE_ENV || 'production',
-      server: 'Netlify Functions',
-      message: 'API funcionando correctamente',
+      status: "ok",
+      environment: process.env.NODE_ENV || "production",
+      server: "Netlify Functions",
+      message: "API funcionando correctamente",
       database: {
-        status: 'connected',
+        status: "connected",
         responseTime: `${dbTime}ms`,
         serverTime: result.rows[0].current_time,
-        version: result.rows[0].db_version.split(' ')[0] + ' ' + result.rows[0].db_version.split(' ')[1],
+        version:
+          result.rows[0].db_version.split(" ")[0] +
+          " " +
+          result.rows[0].db_version.split(" ")[1],
       },
     };
 
-    successResponse(res, response, '🏓 Pong! Sistema operativo');
+    successResponse(res, response, "🏓 Pong! Sistema operativo");
   } catch (error) {
-    console.error('❌ Error en ping:', error);
+    console.error("❌ Error en ping:", error);
 
     const response = {
-      status: 'ok',
-      environment: process.env.NODE_ENV || 'production',
-      server: 'Netlify Functions',
-      message: 'API funcionando con problemas de BD',
+      status: "ok",
+      environment: process.env.NODE_ENV || "production",
+      server: "Netlify Functions",
+      message: "API funcionando con problemas de BD",
       database: {
-        status: 'disconnected',
+        status: "disconnected",
         error: error.message,
       },
     };
 
-    successResponse(res, response, '⚠️ API funcionando pero BD desconectada');
+    successResponse(res, response, "⚠️ API funcionando pero BD desconectada");
   }
 });
 
 // RUTA ENV - Verificar configuración de variables de entorno
-app.get('/api/env', (req, res) => {
+app.get("/api/env", (req, res) => {
   try {
     const envCheck = {
       validation: envValidation,
       variables: {
-        DATABASE_URL: process.env.DATABASE_URL ? 'CONFIGURADO' : 'NO CONFIGURADO',
-        NODE_ENV: process.env.NODE_ENV || 'no definido',
-        CORS_ORIGIN: process.env.CORS_ORIGIN || 'no definido (usando *)',
-        PORT: process.env.PORT || 'no definido (usando default)',
+        DATABASE_URL: process.env.DATABASE_URL
+          ? "CONFIGURADO"
+          : "NO CONFIGURADO",
+        NODE_ENV: process.env.NODE_ENV || "no definido",
+        CORS_ORIGIN: process.env.CORS_ORIGIN || "no definido (usando *)",
+        PORT: process.env.PORT || "no definido (usando default)",
       },
       recommendations: [],
     };
 
     // Agregar recomendaciones según el estado
     if (!process.env.DATABASE_URL) {
-      envCheck.recommendations.push('🔴 CRÍTICO: Configura DATABASE_URL para producción');
+      envCheck.recommendations.push(
+        "🔴 CRÍTICO: Configura DATABASE_URL para producción"
+      );
     }
 
     if (!process.env.NODE_ENV) {
-      envCheck.recommendations.push('🟡 RECOMENDADO: Configura NODE_ENV=production');
+      envCheck.recommendations.push(
+        "🟡 RECOMENDADO: Configura NODE_ENV=production"
+      );
     }
 
-    if (!process.env.CORS_ORIGIN || process.env.CORS_ORIGIN === '*') {
-      envCheck.recommendations.push('🟡 SEGURIDAD: Configura CORS_ORIGIN con tu dominio específico');
+    if (!process.env.CORS_ORIGIN || process.env.CORS_ORIGIN === "*") {
+      envCheck.recommendations.push(
+        "🟡 SEGURIDAD: Configura CORS_ORIGIN con tu dominio específico"
+      );
     }
 
-    successResponse(res, envCheck, '🔧 Configuración de variables de entorno');
+    successResponse(res, envCheck, "🔧 Configuración de variables de entorno");
   } catch (error) {
-    console.error('❌ Error verificando variables de entorno:', error);
-    errorResponse(res, 'Error verificando configuración', 500, error.message);
+    console.error("❌ Error verificando variables de entorno:", error);
+    errorResponse(res, "Error verificando configuración", 500, error.message);
   }
 });
 
 // RUTA INIT - Reintentar inicialización de la base de datos
-app.post('/api/init', async (req, res) => {
+app.post("/api/init", async (req, res) => {
   try {
-    console.log('🔄 Reintentando inicialización de base de datos...');
+    console.log("🔄 Reintentando inicialización de base de datos...");
 
     // Resetear estado
     dbInitialized = false;
@@ -1650,52 +1749,56 @@ app.post('/api/init', async (req, res) => {
     await initDB();
 
     if (dbInitialized) {
-      successResponse(res, {
-        initialized: true,
-        timestamp: new Date().toISOString(),
-      }, '✅ Base de datos inicializada exitosamente');
+      successResponse(
+        res,
+        {
+          initialized: true,
+          timestamp: new Date().toISOString(),
+        },
+        "✅ Base de datos inicializada exitosamente"
+      );
     } else {
-      errorResponse(res, 'Error en la inicialización', 500, {
-        error: dbInitError ? dbInitError.message : 'Error desconocido',
+      errorResponse(res, "Error en la inicialización", 500, {
+        error: dbInitError ? dbInitError.message : "Error desconocido",
         errorCode: dbInitError ? dbInitError.code : null,
         errorDetail: dbInitError ? dbInitError.detail : null,
       });
     }
   } catch (error) {
-    console.error('❌ Error reintentando inicialización:', error);
-    errorResponse(res, 'Error reintentando inicialización', 500, error.message);
+    console.error("❌ Error reintentando inicialización:", error);
+    errorResponse(res, "Error reintentando inicialización", 500, error.message);
   }
 });
 
 // RUTA HEALTH - Health check completo del sistema
-app.get('/api/health', async (req, res) => {
+app.get("/api/health", async (req, res) => {
   const healthCheck = {
     uptime: process.uptime(),
-    message: 'Sistema saludable',
+    message: "Sistema saludable",
     timestamp: new Date().toISOString(),
     services: {},
   };
 
   try {
     const dbStart = Date.now();
-    await pool.query('SELECT 1');
+    await pool.query("SELECT 1");
     const dbTime = Date.now() - dbStart;
 
     healthCheck.services.database = {
-      status: 'healthy',
+      status: "healthy",
       responseTime: `${dbTime}ms`,
     };
   } catch (error) {
     healthCheck.services.database = {
-      status: 'unhealthy',
+      status: "unhealthy",
       error: error.message,
     };
-    healthCheck.message = 'Sistema con problemas';
+    healthCheck.message = "Sistema con problemas";
   }
 
   const memoryUsage = process.memoryUsage();
   healthCheck.services.memory = {
-    status: 'healthy',
+    status: "healthy",
     usage: {
       rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
       heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
@@ -1703,13 +1806,18 @@ app.get('/api/health', async (req, res) => {
     },
   };
 
-  const isHealthy = healthCheck.services.database.status === 'healthy';
+  const isHealthy = healthCheck.services.database.status === "healthy";
   const statusCode = isHealthy ? 200 : 503;
 
   if (isHealthy) {
-    successResponse(res, healthCheck, '✅ Sistema completamente saludable', statusCode);
+    successResponse(
+      res,
+      healthCheck,
+      "✅ Sistema completamente saludable",
+      statusCode
+    );
   } else {
-    errorResponse(res, '⚠️ Sistema con problemas', statusCode, healthCheck);
+    errorResponse(res, "⚠️ Sistema con problemas", statusCode, healthCheck);
   }
 });
 
@@ -1721,39 +1829,47 @@ app.get('/api/health', async (req, res) => {
 function validateDiaEntrega(diaData) {
   const errors = [];
 
-  if (!diaData || typeof diaData !== 'object') {
-    errors.push('Los datos del día son requeridos');
+  if (!diaData || typeof diaData !== "object") {
+    errors.push("Los datos del día son requeridos");
     return errors;
   }
 
-  if (!diaData.descripcion || typeof diaData.descripcion !== 'string' || diaData.descripcion.trim() === '') {
-    errors.push('La descripción es requerida y debe ser un texto válido');
+  if (
+    !diaData.descripcion ||
+    typeof diaData.descripcion !== "string" ||
+    diaData.descripcion.trim() === ""
+  ) {
+    errors.push("La descripción es requerida y debe ser un texto válido");
   }
 
   return errors;
 }
 
 // GET /api/dias-entrega - Obtener todos los días de entrega con paginación
-app.get('/api/dias-entrega', async (req, res) => {
+app.get("/api/dias-entrega", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
-    const search = req.query.search || '';
+    const search = req.query.search || "";
 
-    let query = 'SELECT * FROM dias_entrega';
-    let countQuery = 'SELECT COUNT(*) FROM dias_entrega';
+    let query = "SELECT * FROM dias_entrega";
+    let countQuery = "SELECT COUNT(*) FROM dias_entrega";
     let params = [];
 
     // Aplicar filtros de búsqueda
     if (search) {
-      query += ' WHERE descripcion ILIKE $1';
-      countQuery += ' WHERE descripcion ILIKE $1';
+      query += " WHERE descripcion ILIKE $1";
+      countQuery += " WHERE descripcion ILIKE $1";
       params.push(`%${search}%`);
     }
 
     // Agregar ordenamiento y paginación
-    query += ' ORDER BY id ASC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    query +=
+      " ORDER BY id ASC LIMIT $" +
+      (params.length + 1) +
+      " OFFSET $" +
+      (params.length + 2);
     params.push(limit, offset);
 
     const [dataResult, countResult] = await Promise.all([
@@ -1764,48 +1880,56 @@ app.get('/api/dias-entrega', async (req, res) => {
     const totalItems = parseInt(countResult.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    successResponse(res, {
-      data: dataResult.rows,
-      pagination: {
-        page,
-        limit,
-        totalItems,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+    successResponse(
+      res,
+      {
+        data: dataResult.rows,
+        pagination: {
+          page,
+          limit,
+          totalItems,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+        },
       },
-    }, 'Días de entrega obtenidos exitosamente');
+      "Días de entrega obtenidos exitosamente"
+    );
   } catch (error) {
-    console.error('❌ Error al obtener días de entrega:', error);
-    errorResponse(res, 'Error al obtener días de entrega', 500, error.message);
+    console.error("❌ Error al obtener días de entrega:", error);
+    errorResponse(res, "Error al obtener días de entrega", 500, error.message);
   }
 });
 
 // GET /api/dias-entrega/:id - Obtener día de entrega por ID
-app.get('/api/dias-entrega/:id', async (req, res) => {
+app.get("/api/dias-entrega/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de día de entrega inválido', 400);
+      return errorResponse(res, "ID de día de entrega inválido", 400);
     }
 
-    const query = 'SELECT * FROM dias_entrega WHERE id = $1';
+    const query = "SELECT * FROM dias_entrega WHERE id = $1";
     const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
-      return errorResponse(res, 'Día de entrega no encontrado', 404);
+      return errorResponse(res, "Día de entrega no encontrado", 404);
     }
 
-    successResponse(res, result.rows[0], 'Día de entrega obtenido exitosamente');
+    successResponse(
+      res,
+      result.rows[0],
+      "Día de entrega obtenido exitosamente"
+    );
   } catch (error) {
-    console.error('❌ Error al obtener día de entrega:', error);
-    errorResponse(res, 'Error al obtener día de entrega', 500, error.message);
+    console.error("❌ Error al obtener día de entrega:", error);
+    errorResponse(res, "Error al obtener día de entrega", 500, error.message);
   }
 });
 
 // POST /api/dias-entrega - Crear nuevo día de entrega
-app.post('/api/dias-entrega', async (req, res) => {
+app.post("/api/dias-entrega", async (req, res) => {
   try {
     let diaData = req.body;
 
@@ -1814,21 +1938,31 @@ app.post('/api/dias-entrega', async (req, res) => {
       try {
         diaData = JSON.parse(diaData.toString());
       } catch (parseError) {
-        return errorResponse(res, 'Formato JSON inválido', 400, parseError.message);
+        return errorResponse(
+          res,
+          "Formato JSON inválido",
+          400,
+          parseError.message
+        );
       }
     }
 
-    console.log('📝 Datos recibidos para crear día de entrega:', diaData);
+    console.log("📝 Datos recibidos para crear día de entrega:", diaData);
 
     const validationErrors = validateDiaEntrega(diaData);
-    console.log('🔍 Errores de validación:', validationErrors);
+    console.log("🔍 Errores de validación:", validationErrors);
 
     if (validationErrors.length > 0) {
-      return errorResponse(res, 'Datos de día de entrega inválidos', 400, validationErrors);
+      return errorResponse(
+        res,
+        "Datos de día de entrega inválidos",
+        400,
+        validationErrors
+      );
     }
 
     const { descripcion } = diaData;
-    console.log('📅 Descripción extraída:', descripcion);
+    console.log("📅 Descripción extraída:", descripcion);
 
     const query = `
       INSERT INTO dias_entrega (descripcion)
@@ -1838,32 +1972,41 @@ app.post('/api/dias-entrega', async (req, res) => {
 
     const result = await pool.query(query, [descripcion]);
 
-    successResponse(res, result.rows[0], 'Día de entrega creado exitosamente', 201);
+    successResponse(
+      res,
+      result.rows[0],
+      "Día de entrega creado exitosamente",
+      201
+    );
   } catch (error) {
-    console.error('❌ Error al crear día de entrega:', error);
+    console.error("❌ Error al crear día de entrega:", error);
 
     // Error de clave única (PostgreSQL)
-    if (error.code === '23505') {
-      return errorResponse(res, 'Ya existe un día de entrega con esa descripción', 409);
+    if (error.code === "23505") {
+      return errorResponse(
+        res,
+        "Ya existe un día de entrega con esa descripción",
+        409
+      );
     }
 
     // Error de violación de restricción NOT NULL
-    if (error.code === '23502') {
-      return errorResponse(res, 'Faltan campos requeridos', 400);
+    if (error.code === "23502") {
+      return errorResponse(res, "Faltan campos requeridos", 400);
     }
 
-    errorResponse(res, 'Error al crear día de entrega', 500, error.message);
+    errorResponse(res, "Error al crear día de entrega", 500, error.message);
   }
 });
 
 // PUT /api/dias-entrega/:id - Actualizar día de entrega completo
-app.put('/api/dias-entrega/:id', async (req, res) => {
+app.put("/api/dias-entrega/:id", async (req, res) => {
   try {
     const { id } = req.params;
     let diaData = req.body;
 
     if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de día de entrega inválido', 400);
+      return errorResponse(res, "ID de día de entrega inválido", 400);
     }
 
     // Si el cuerpo viene como buffer, parsearlo
@@ -1871,13 +2014,23 @@ app.put('/api/dias-entrega/:id', async (req, res) => {
       try {
         diaData = JSON.parse(diaData.toString());
       } catch (parseError) {
-        return errorResponse(res, 'Formato JSON inválido', 400, parseError.message);
+        return errorResponse(
+          res,
+          "Formato JSON inválido",
+          400,
+          parseError.message
+        );
       }
     }
 
     const validationErrors = validateDiaEntrega(diaData);
     if (validationErrors.length > 0) {
-      return errorResponse(res, 'Datos de día de entrega inválidos', 400, validationErrors);
+      return errorResponse(
+        res,
+        "Datos de día de entrega inválidos",
+        400,
+        validationErrors
+      );
     }
 
     const { descripcion } = diaData;
@@ -1892,28 +2045,41 @@ app.put('/api/dias-entrega/:id', async (req, res) => {
     const result = await pool.query(query, [descripcion, id]);
 
     if (result.rows.length === 0) {
-      return errorResponse(res, 'Día de entrega no encontrado', 404);
+      return errorResponse(res, "Día de entrega no encontrado", 404);
     }
 
-    successResponse(res, result.rows[0], 'Día de entrega actualizado exitosamente');
+    successResponse(
+      res,
+      result.rows[0],
+      "Día de entrega actualizado exitosamente"
+    );
   } catch (error) {
-    console.error('❌ Error al actualizar día de entrega:', error);
+    console.error("❌ Error al actualizar día de entrega:", error);
 
-    if (error.code === '23505') {
-      return errorResponse(res, 'Ya existe un día de entrega con esa descripción', 409);
+    if (error.code === "23505") {
+      return errorResponse(
+        res,
+        "Ya existe un día de entrega con esa descripción",
+        409
+      );
     }
 
-    errorResponse(res, 'Error al actualizar día de entrega', 500, error.message);
+    errorResponse(
+      res,
+      "Error al actualizar día de entrega",
+      500,
+      error.message
+    );
   }
 });
 
 // DELETE /api/dias-entrega/:id - Eliminar día de entrega
-app.delete('/api/dias-entrega/:id', async (req, res) => {
+app.delete("/api/dias-entrega/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!id || isNaN(id)) {
-      return errorResponse(res, 'ID de día de entrega inválido', 400);
+      return errorResponse(res, "ID de día de entrega inválido", 400);
     }
 
     // Verificar si el día está siendo usado en otras tablas
@@ -1926,25 +2092,37 @@ app.delete('/api/dias-entrega/:id', async (req, res) => {
     const usageResult = await pool.query(checkUsageQuery, [id]);
 
     if (usageResult.rows[0].count > 0) {
-      return errorResponse(res, 'No se puede eliminar el día de entrega porque está siendo usado en asignaciones de camiones', 400);
+      return errorResponse(
+        res,
+        "No se puede eliminar el día de entrega porque está siendo usado en asignaciones de camiones",
+        400
+      );
     }
 
-    const query = 'DELETE FROM dias_entrega WHERE id = $1 RETURNING *';
+    const query = "DELETE FROM dias_entrega WHERE id = $1 RETURNING *";
     const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
-      return errorResponse(res, 'Día de entrega no encontrado', 404);
+      return errorResponse(res, "Día de entrega no encontrado", 404);
     }
 
-    successResponse(res, result.rows[0], 'Día de entrega eliminado exitosamente');
+    successResponse(
+      res,
+      result.rows[0],
+      "Día de entrega eliminado exitosamente"
+    );
   } catch (error) {
-    console.error('❌ Error al eliminar día de entrega:', error);
+    console.error("❌ Error al eliminar día de entrega:", error);
 
-    if (error.code === '23503') {
-      return errorResponse(res, 'No se puede eliminar el día de entrega porque está siendo usado en otras tablas', 400);
+    if (error.code === "23503") {
+      return errorResponse(
+        res,
+        "No se puede eliminar el día de entrega porque está siendo usado en otras tablas",
+        400
+      );
     }
 
-    errorResponse(res, 'Error al eliminar día de entrega', 500, error.message);
+    errorResponse(res, "Error al eliminar día de entrega", 500, error.message);
   }
 });
 
@@ -1953,9 +2131,9 @@ app.delete('/api/dias-entrega/:id', async (req, res) => {
 // =============================================================================
 
 // RUTA SEEDERS - Ejecutar todos los seeders
-app.post('/api/seeders', async (req, res) => {
+app.post("/api/seeders", async (req, res) => {
   try {
-    console.log('🌱 Ejecutando todos los seeders...');
+    console.log("🌱 Ejecutando todos los seeders...");
 
     // Ejecutar seeder de camiones pasando el pool de conexiones
     const camionesResult = await seedCamiones(pool);
@@ -1963,60 +2141,82 @@ app.post('/api/seeders', async (req, res) => {
     // Ejecutar seeder de días de entrega pasando el pool de conexiones
     const diasResult = await seedDiasEntrega(pool);
 
-    successResponse(res, {
-      seeders: ['camiones', 'dias_entrega'],
-      camiones: camionesResult,
-      dias_entrega: diasResult,
-      message: 'Todos los seeders ejecutados correctamente',
-    }, '✅ Todos los seeders ejecutados exitosamente');
+    successResponse(
+      res,
+      {
+        seeders: ["camiones", "dias_entrega"],
+        camiones: camionesResult,
+        dias_entrega: diasResult,
+        message: "Todos los seeders ejecutados correctamente",
+      },
+      "✅ Todos los seeders ejecutados exitosamente"
+    );
   } catch (error) {
-    console.error('❌ Error ejecutando seeders:', error);
-    errorResponse(res, 'Error ejecutando seeders', 500, error.message);
+    console.error("❌ Error ejecutando seeders:", error);
+    errorResponse(res, "Error ejecutando seeders", 500, error.message);
   }
 });
 
 // RUTA SEEDERS CAMIONES - Ejecutar solo seeder de camiones
-app.post('/api/seeders/camiones', async (req, res) => {
+app.post("/api/seeders/camiones", async (req, res) => {
   try {
-    console.log('🚛 Ejecutando seeder de camiones...');
+    console.log("🚛 Ejecutando seeder de camiones...");
 
     // Ejecutar seeder de camiones pasando el pool de conexiones
     const result = await seedCamiones(pool);
 
-    successResponse(res, {
-      camiones: result,
-      message: 'Seeder de camiones ejecutado correctamente',
-    }, '✅ Seeder de camiones ejecutado exitosamente');
+    successResponse(
+      res,
+      {
+        camiones: result,
+        message: "Seeder de camiones ejecutado correctamente",
+      },
+      "✅ Seeder de camiones ejecutado exitosamente"
+    );
   } catch (error) {
-    console.error('❌ Error ejecutando seeder de camiones:', error);
-    errorResponse(res, 'Error ejecutando seeder de camiones', 500, error.message);
+    console.error("❌ Error ejecutando seeder de camiones:", error);
+    errorResponse(
+      res,
+      "Error ejecutando seeder de camiones",
+      500,
+      error.message
+    );
   }
 });
 
 // RUTA SEEDERS DIAS_ENTREGA - Ejecutar solo seeder de días de entrega
-app.post('/api/seeders/dias', async (req, res) => {
+app.post("/api/seeders/dias", async (req, res) => {
   try {
-    console.log('🗓️ Ejecutando seeder de días de entrega...');
+    console.log("🗓️ Ejecutando seeder de días de entrega...");
 
     // Ejecutar seeder de días de entrega pasando el pool de conexiones
     const result = await seedDiasEntrega(pool);
 
-    successResponse(res, {
-      dias_entrega: result,
-      message: 'Seeder de días de entrega ejecutado correctamente',
-    }, '✅ Seeder de días de entrega ejecutado exitosamente');
+    successResponse(
+      res,
+      {
+        dias_entrega: result,
+        message: "Seeder de días de entrega ejecutado correctamente",
+      },
+      "✅ Seeder de días de entrega ejecutado exitosamente"
+    );
   } catch (error) {
-    console.error('❌ Error ejecutando seeder de días de entrega:', error);
-    errorResponse(res, 'Error ejecutando seeder de días de entrega', 500, error.message);
+    console.error("❌ Error ejecutando seeder de días de entrega:", error);
+    errorResponse(
+      res,
+      "Error ejecutando seeder de días de entrega",
+      500,
+      error.message
+    );
   }
 });
 
 // Usar las rutas modularizadas
-app.use('/api/camiones', camionesRoutes);
-app.use('/api/clientes', clientesRoutes);
-app.use('/api/dias-entrega', diasEntregaRoutes);
-app.use('/api/health', healthRoutes);
-app.use('/api/ping', pingRoutes);
+app.use("/api/camiones", camionesRoutes);
+app.use("/api/clientes", clientesRoutes);
+app.use("/api/dias-entrega", diasEntregaRoutes);
+app.use("/api/health", healthRoutes);
+app.use("/api/ping", pingRoutes);
 
 // Middleware de manejo de rutas no encontradas
 app.use((req, res) => {
@@ -2025,8 +2225,13 @@ app.use((req, res) => {
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
-  console.error('❌ Error:', err);
-  errorResponse(res, 'Error interno del servidor', 500, process.env.NODE_ENV === 'production' ? 'Algo salió mal' : err.message);
+  console.error("❌ Error:", err);
+  errorResponse(
+    res,
+    "Error interno del servidor",
+    500,
+    process.env.NODE_ENV === "production" ? "Algo salió mal" : err.message
+  );
 });
 
 export const handler = serverless(app);

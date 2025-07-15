@@ -1,12 +1,11 @@
 // routes/camiones.js
 import express from 'express';
-import { 
-  getAllCamiones, 
-  getCamionById, 
-  createCamion, 
-  updateCamion, 
+import {
+  getAllCamiones,
+  getCamionById,
+  createCamion,
+  updateCamion,
   deleteCamion,
-  testCamion,
 } from '../controllers/camionesController.js';
 
 const router = express.Router();
@@ -25,8 +24,5 @@ router.put('/:id', updateCamion);
 
 // DELETE /api/camiones/:id - Eliminar camión
 router.delete('/:id', deleteCamion);
-
-// POST /api/camiones/test - Endpoint de prueba para debugging
-router.post('/test', testCamion);
 
 export default router;
