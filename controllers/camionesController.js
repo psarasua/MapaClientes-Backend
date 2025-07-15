@@ -191,3 +191,43 @@ export const validateCamion = (camionData) => {
   console.log("✅ Resultado de validación:", { errors });
   return errors;
 };
+
+// Función de prueba para debugging
+export const testCamion = async (req, res) => {
+  console.log("🧪 TEST ENDPOINT - Información completa:");
+  console.log("- req.method:", req.method);
+  console.log("- req.params:", req.params);
+  console.log("- req.body:", req.body);
+  console.log("- req.body type:", typeof req.body);
+  console.log("- req.headers:", req.headers);
+  console.log("- req.headers[content-type]:", req.headers["content-type"]);
+
+  // Intentar parsear manualmente si es string
+  let parsedBody = req.body;
+  if (typeof req.body === "string") {
+    try {
+      parsedBody = JSON.parse(req.body);
+      console.log("✅ Parsed body:", parsedBody);
+    } catch (error) {
+      console.log("❌ Error parsing body:", error);
+    }
+  }
+
+  // Validar con la función original
+  const validationErrors = validateCamion(req.body);
+  console.log("📋 Validation errors:", validationErrors);
+
+  successResponse(
+    res,
+    {
+      method: req.method,
+      params: req.params,
+      body: req.body,
+      bodyType: typeof req.body,
+      parsedBody: parsedBody,
+      validationErrors: validationErrors,
+      headers: req.headers,
+    },
+    "Test endpoint ejecutado correctamente"
+  );
+};
