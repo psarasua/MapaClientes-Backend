@@ -7,6 +7,13 @@ import { initializeDatabase, checkTableExists, getDatabaseInfo } from '../../con
 import { seedCamiones } from '../../seeders/camionesSeeder.js';
 import { seedDiasEntrega } from '../../seeders/diasEntregaSeeder.js';
 
+// Importar rutas modularizadas
+import camionesRoutes from '../../routes/camiones.js';
+import clientesRoutes from '../../routes/clientes.js';
+import diasEntregaRoutes from '../../routes/diasEntrega.js';
+import healthRoutes from '../../routes/health.js';
+import pingRoutes from '../../routes/ping.js';
+
 // Cargar variables de entorno en desarrollo local
 if (process.env.NODE_ENV !== 'production') {
   try {
@@ -641,13 +648,6 @@ app.get('/api', async (req, res) => {
         // Generar HTML para tabla simple
         tableInfo = Object.values(tablesMap).map(table =>
           `<tr><td>${table.name}</td><td>${table.totalColumns} columnas</td></tr>`,
-        ).join('');
-
-        // Generar HTML detallado de la base de datos
-        detailedDbInfo = `
-          <div class="db-info-section">
-            <h3>🏛️ Información de la Base de Datos</h3>
-            <div class="db-grid">
               <div class="db-info-card">
                 <h4>📊 Estadísticas Generales</h4>
                 <div class="info-item"><strong>Tipo:</strong> PostgreSQL</div>
@@ -1991,6 +1991,12 @@ app.post('/api/seeders/dias', async (req, res) => {
   }
 });
 
+// Usar las rutas modularizadas
+app.use('/api/camiones', camionesRoutes);
+app.use('/api/clientes', clientesRoutes);
+app.use('/api/dias-entrega', diasEntregaRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/ping', pingRoutes);
 
 // Middleware de manejo de rutas no encontradas
 app.use((req, res) => {
