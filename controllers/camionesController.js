@@ -80,13 +80,18 @@ export const updateCamion = async (req, res) => {
     const { id } = req.params;
     const camionData = req.body;
 
+    // Log para debugging
+    console.log("🔍 Actualizando camión:", { id, camionData });
+
     if (!id || isNaN(id)) {
+      console.log("❌ ID inválido:", id);
       return errorResponse(res, "ID inválido", 400);
     }
 
     // Validar datos
     const validationErrors = validateCamion(camionData);
     if (validationErrors.length > 0) {
+      console.log("❌ Errores de validación:", validationErrors);
       return errorResponse(res, "Datos inválidos", 400, validationErrors);
     }
 
@@ -153,8 +158,11 @@ export const deleteCamion = async (req, res) => {
 export const validateCamion = (camionData) => {
   const errors = [];
 
+  console.log("🔍 Validando datos del camión:", camionData);
+
   if (!camionData || typeof camionData !== "object") {
     errors.push("Los datos del camión son requeridos");
+    console.log("❌ Datos del camión no válidos:", typeof camionData);
     return errors;
   }
 
@@ -164,11 +172,17 @@ export const validateCamion = (camionData) => {
     camionData.descripcion.trim() === ""
   ) {
     errors.push("La descripción es requerida y debe ser un texto válido");
+    console.log("❌ Descripción inválida:", {
+      descripcion: camionData.descripcion,
+      tipo: typeof camionData.descripcion,
+    });
   }
 
   if (camionData.descripcion && camionData.descripcion.length > 255) {
     errors.push("La descripción no puede exceder 255 caracteres");
+    console.log("❌ Descripción muy larga:", camionData.descripcion.length);
   }
 
+  console.log("✅ Resultado de validación:", { errors });
   return errors;
 };
