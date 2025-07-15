@@ -4,7 +4,7 @@ const { Pool } = pkg;
 
 const defaultPool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_us8Q7AjPFHUT@ep-rapid-grass-acjetl0d-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
 export async function seedCamiones(externalPool = null) {
@@ -26,7 +26,7 @@ export async function seedCamiones(externalPool = null) {
       'Alvaro Garcia',
       'Robert Labruna',
       'Jose Luis',
-      'Reparto Nuevo'
+      'Reparto Nuevo',
     ];
 
     const insertedCamiones = [];
@@ -34,7 +34,7 @@ export async function seedCamiones(externalPool = null) {
     for (const descripcion of camiones) {
       const result = await pool.query(
         'INSERT INTO camiones (descripcion) VALUES ($1) RETURNING *',
-        [descripcion]
+        [descripcion],
       );
       insertedCamiones.push(result.rows[0]);
       console.log(`✅ Camión insertado: ${descripcion}`);

@@ -5,6 +5,13 @@ import dotenv from 'dotenv';
 import pkg from 'pg';
 import { initializeDatabase, checkTableExists, getDatabaseInfo } from './config/dbInit.js';
 
+// Importar rutas modulares
+import clientesRoutes from './routes/clientes.js';
+import camionesRoutes from './routes/camiones.js';
+import diasEntregaRoutes from './routes/diasEntrega.js';
+import healthRoutes from './routes/health.js';
+import pingRoutes from './routes/ping.js';
+
 // Cargar variables de entorno
 dotenv.config();
 
@@ -55,7 +62,7 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
+  credentials: true,
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -73,7 +80,7 @@ const successResponse = (res, data, message = 'Operación exitosa', statusCode =
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -82,9 +89,16 @@ const errorResponse = (res, message = 'Error en la operación', statusCode = 400
     success: false,
     error: message,
     details: error,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
+
+// Configurar rutas modulares
+app.use('/api/clientes', clientesRoutes);
+app.use('/api/camiones', camionesRoutes);
+app.use('/api/dias-entrega', diasEntregaRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/ping', pingRoutes);
 
 // Ruta principal con información de la API
 app.get('/api', (req, res) => {
@@ -95,65 +109,38 @@ app.get('/api', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     database: {
       initialized: dbInitialized,
-      autoInit: true
+      autoInit: true,
     },
     endpoints: {
       ping: '/api/ping',
       health: '/api/health',
       database: {
         info: '/api/database',
-        reinit: '/api/database/reinit (POST)'
+        reinit: '/api/database/reinit (POST)',
       },
       clientes: {
         base: '/api/clientes',
         methods: ['GET', 'POST'],
         byId: '/api/clientes/:id',
         methodsById: ['GET', 'PUT', 'PATCH', 'DELETE'],
-        ubicacion: '/api/clientes/:id/ubicacion'
-      }
-    }
+        ubicacion: '/api/clientes/:id/ubicacion',
+      },
+      camiones: {
+        base: '/api/camiones',
+        methods: ['GET', 'POST'],
+        byId: '/api/camiones/:id',
+        methodsById: ['GET', 'PUT', 'DELETE'],
+      },
+      diasEntrega: {
+        base: '/api/dias-entrega',
+        methods: ['GET', 'POST'],
+        byId: '/api/dias-entrega/:id',
+        methodsById: ['GET', 'PUT', 'DELETE'],
+      },
+    },
   };
 
   successResponse(res, apiInfo, '🚀 API MapaClientes funcionando correctamente');
-});
-
-// RUTA PING - Health check con información de base de datos
-app.get('/api/ping', async (req, res) => {
-  try {
-    const dbStart = Date.now();
-    const result = await pool.query('SELECT NOW() as current_time, version() as db_version');
-    const dbTime = Date.now() - dbStart;
-    
-    const response = {
-      status: 'ok',
-      environment: process.env.NODE_ENV || 'development',
-      server: 'Express Local',
-      message: 'API funcionando correctamente',
-      database: {
-        status: 'connected',
-        responseTime: `${dbTime}ms`,
-        serverTime: result.rows[0].current_time,
-        version: result.rows[0].db_version.split(' ')[0] + ' ' + result.rows[0].db_version.split(' ')[1]
-      }
-    };
-
-    successResponse(res, response, '🏓 Pong! Sistema operativo');
-  } catch (error) {
-    console.error('❌ Error en ping:', error);
-    
-    const response = {
-      status: 'ok',
-      environment: process.env.NODE_ENV || 'development',
-      server: 'Express Local',
-      message: 'API funcionando con problemas de BD',
-      database: {
-        status: 'disconnected',
-        error: error.message
-      }
-    };
-
-    successResponse(res, response, '⚠️ API funcionando pero BD desconectada');
-  }
 });
 
 // RUTA DATABASE INFO - Información detallada de la base de datos
@@ -173,7 +160,7 @@ app.get('/api/database', async (req, res) => {
         tables[row.table_name] = {
           name: row.table_name,
           type: row.table_type,
-          columns: []
+          columns: [],
         };
       }
       if (row.column_name) {
@@ -181,7 +168,7 @@ app.get('/api/database', async (req, res) => {
           name: row.column_name,
           type: row.data_type,
           nullable: row.is_nullable === 'YES',
-          default: row.column_default
+          default: row.column_default,
         });
       }
     });
@@ -190,7 +177,7 @@ app.get('/api/database', async (req, res) => {
       initialized: dbInitialized,
       tables: Object.values(tables),
       tableCount: Object.keys(tables).length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     successResponse(res, response, '📊 Información de base de datos obtenida correctamente');
@@ -214,9 +201,6 @@ app.post('/api/database/reinit', async (req, res) => {
     errorResponse(res, 'Error reinicializando la base de datos', 500, error.message);
   }
 });
-
-// Importar y usar las rutas existentes
-// Aquí deberías importar tus rutas de clientes cuando las tengas
 
 // Puerto del servidor
 const PORT = process.env.PORT || 3000;

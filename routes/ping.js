@@ -21,13 +21,13 @@ router.get('/', async (req, res) => {
         status: 'connected',
         responseTime: `${dbTime}ms`,
         serverTime: result.rows[0].current_time,
-        version: result.rows[0].db_version.split(' ')[0] + ' ' + result.rows[0].db_version.split(' ')[1]
+        version: result.rows[0].db_version.split(' ')[0] + ' ' + result.rows[0].db_version.split(' ')[1],
       },
       endpoints: {
         ping: '/api/ping',
         clientes: '/api/clientes',
-        health: '/api/health'
-      }
+        health: '/api/health',
+      },
     };
 
     successResponse(res, response, '🏓 Pong! Sistema operativo');
@@ -41,8 +41,8 @@ router.get('/', async (req, res) => {
       message: 'API funcionando con problemas de BD',
       database: {
         status: 'disconnected',
-        error: error.message
-      }
+        error: error.message,
+      },
     };
 
     successResponse(res, response, '⚠️ API funcionando pero BD desconectada');

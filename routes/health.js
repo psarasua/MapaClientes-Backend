@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
     uptime: process.uptime(),
     message: 'Sistema saludable',
     timestamp: new Date().toISOString(),
-    services: {}
+    services: {},
   };
 
   // Verificar base de datos
@@ -21,12 +21,12 @@ router.get('/', async (req, res) => {
     
     healthCheck.services.database = {
       status: 'healthy',
-      responseTime: `${dbTime}ms`
+      responseTime: `${dbTime}ms`,
     };
   } catch (error) {
     healthCheck.services.database = {
       status: 'unhealthy',
-      error: error.message
+      error: error.message,
     };
     healthCheck.message = 'Sistema con problemas';
   }
@@ -39,8 +39,8 @@ router.get('/', async (req, res) => {
       rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
       heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
       heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
-      external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`
-    }
+      external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
+    },
   };
 
   const isHealthy = healthCheck.services.database.status === 'healthy';

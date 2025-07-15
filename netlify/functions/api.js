@@ -52,7 +52,7 @@ const validateEnvironmentVariables = () => {
   return {
     hasErrors: missingVars.length > 0,
     missingVars,
-    warnings
+    warnings,
   };
 };
 
@@ -122,7 +122,7 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
+  credentials: true,
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -140,7 +140,7 @@ const successResponse = (res, data, message = 'Operación exitosa', statusCode =
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -149,7 +149,7 @@ const errorResponse = (res, message = 'Error en la operación', statusCode = 400
     success: false,
     error: message,
     details: error,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -182,7 +182,7 @@ app.get('/', async (req, res) => {
     const envStatus = {
       DATABASE_URL: process.env.DATABASE_URL ? '🟢 Configurada' : '🔴 No configurada',
       NODE_ENV: process.env.NODE_ENV ? `🟢 ${process.env.NODE_ENV}` : '🟡 No definida',
-      CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)'
+      CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)',
     };
 
     const html = `
@@ -550,7 +550,7 @@ app.get('/api', async (req, res) => {
     const envStatus = {
       DATABASE_URL: process.env.DATABASE_URL ? '🟢 Configurada' : '🔴 No configurada',
       NODE_ENV: process.env.NODE_ENV ? `🟢 ${process.env.NODE_ENV}` : '🟡 No definida',
-      CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)'
+      CORS_ORIGIN: process.env.CORS_ORIGIN ? `🟢 ${process.env.CORS_ORIGIN}` : '🟡 * (por defecto)',
     };
 
     // Obtener información detallada de la base de datos
@@ -564,8 +564,8 @@ app.get('/api', async (req, res) => {
       connectionPool: {
         totalConnections: 0,
         idleConnections: 0,
-        waitingClients: 0
-      }
+        waitingClients: 0,
+      },
     };
 
     let tableInfo = '';
@@ -591,7 +591,7 @@ app.get('/api', async (req, res) => {
         dbInfo.connectionPool = {
           totalConnections: pool.totalCount,
           idleConnections: pool.idleCount,
-          waitingClients: pool.waitingCount
+          waitingClients: pool.waitingCount,
         };
 
         // Información detallada de las tablas con columnas
@@ -619,7 +619,7 @@ app.get('/api', async (req, res) => {
               name: row.table_name,
               type: row.table_type,
               totalColumns: row.total_columns,
-              columns: []
+              columns: [],
             };
           }
 
@@ -629,7 +629,7 @@ app.get('/api', async (req, res) => {
               type: row.data_type,
               nullable: row.is_nullable === 'YES',
               default: row.column_default,
-              position: row.ordinal_position
+              position: row.ordinal_position,
             });
           }
         });
@@ -640,7 +640,7 @@ app.get('/api', async (req, res) => {
 
         // Generar HTML para tabla simple
         tableInfo = Object.values(tablesMap).map(table =>
-          `<tr><td>${table.name}</td><td>${table.totalColumns} columnas</td></tr>`
+          `<tr><td>${table.name}</td><td>${table.totalColumns} columnas</td></tr>`,
         ).join('');
 
         // Generar HTML detallado de la base de datos
@@ -1560,8 +1560,8 @@ app.get('/api/ping', async (req, res) => {
         status: 'connected',
         responseTime: `${dbTime}ms`,
         serverTime: result.rows[0].current_time,
-        version: result.rows[0].db_version.split(' ')[0] + ' ' + result.rows[0].db_version.split(' ')[1]
-      }
+        version: result.rows[0].db_version.split(' ')[0] + ' ' + result.rows[0].db_version.split(' ')[1],
+      },
     };
 
     successResponse(res, response, '🏓 Pong! Sistema operativo');
@@ -1575,8 +1575,8 @@ app.get('/api/ping', async (req, res) => {
       message: 'API funcionando con problemas de BD',
       database: {
         status: 'disconnected',
-        error: error.message
-      }
+        error: error.message,
+      },
     };
 
     successResponse(res, response, '⚠️ API funcionando pero BD desconectada');
@@ -1592,9 +1592,9 @@ app.get('/api/env', (req, res) => {
         DATABASE_URL: process.env.DATABASE_URL ? 'CONFIGURADO' : 'NO CONFIGURADO',
         NODE_ENV: process.env.NODE_ENV || 'no definido',
         CORS_ORIGIN: process.env.CORS_ORIGIN || 'no definido (usando *)',
-        PORT: process.env.PORT || 'no definido (usando default)'
+        PORT: process.env.PORT || 'no definido (usando default)',
       },
-      recommendations: []
+      recommendations: [],
     };
 
     // Agregar recomendaciones según el estado
@@ -1632,13 +1632,13 @@ app.post('/api/init', async (req, res) => {
     if (dbInitialized) {
       successResponse(res, {
         initialized: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }, '✅ Base de datos inicializada exitosamente');
     } else {
       errorResponse(res, 'Error en la inicialización', 500, {
         error: dbInitError ? dbInitError.message : 'Error desconocido',
         errorCode: dbInitError ? dbInitError.code : null,
-        errorDetail: dbInitError ? dbInitError.detail : null
+        errorDetail: dbInitError ? dbInitError.detail : null,
       });
     }
   } catch (error) {
@@ -1653,7 +1653,7 @@ app.get('/api/health', async (req, res) => {
     uptime: process.uptime(),
     message: 'Sistema saludable',
     timestamp: new Date().toISOString(),
-    services: {}
+    services: {},
   };
 
   try {
@@ -1663,12 +1663,12 @@ app.get('/api/health', async (req, res) => {
 
     healthCheck.services.database = {
       status: 'healthy',
-      responseTime: `${dbTime}ms`
+      responseTime: `${dbTime}ms`,
     };
   } catch (error) {
     healthCheck.services.database = {
       status: 'unhealthy',
-      error: error.message
+      error: error.message,
     };
     healthCheck.message = 'Sistema con problemas';
   }
@@ -1679,8 +1679,8 @@ app.get('/api/health', async (req, res) => {
     usage: {
       rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
       heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`
-    }
+      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+    },
   };
 
   const isHealthy = healthCheck.services.database.status === 'healthy';
@@ -1738,7 +1738,7 @@ app.get('/api/dias-entrega', async (req, res) => {
 
     const [dataResult, countResult] = await Promise.all([
       pool.query(query, params),
-      pool.query(countQuery, search ? [`%${search}%`] : [])
+      pool.query(countQuery, search ? [`%${search}%`] : []),
     ]);
 
     const totalItems = parseInt(countResult.rows[0].count);
@@ -1752,8 +1752,8 @@ app.get('/api/dias-entrega', async (req, res) => {
         totalItems,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     }, 'Días de entrega obtenidos exitosamente');
   } catch (error) {
     console.error('❌ Error al obtener días de entrega:', error);
@@ -1947,7 +1947,7 @@ app.post('/api/seeders', async (req, res) => {
       seeders: ['camiones', 'dias_entrega'],
       camiones: camionesResult,
       dias_entrega: diasResult,
-      message: 'Todos los seeders ejecutados correctamente'
+      message: 'Todos los seeders ejecutados correctamente',
     }, '✅ Todos los seeders ejecutados exitosamente');
   } catch (error) {
     console.error('❌ Error ejecutando seeders:', error);
@@ -1965,7 +1965,7 @@ app.post('/api/seeders/camiones', async (req, res) => {
 
     successResponse(res, {
       camiones: result,
-      message: 'Seeder de camiones ejecutado correctamente'
+      message: 'Seeder de camiones ejecutado correctamente',
     }, '✅ Seeder de camiones ejecutado exitosamente');
   } catch (error) {
     console.error('❌ Error ejecutando seeder de camiones:', error);
@@ -1983,7 +1983,7 @@ app.post('/api/seeders/dias', async (req, res) => {
 
     successResponse(res, {
       dias_entrega: result,
-      message: 'Seeder de días de entrega ejecutado correctamente'
+      message: 'Seeder de días de entrega ejecutado correctamente',
     }, '✅ Seeder de días de entrega ejecutado exitosamente');
   } catch (error) {
     console.error('❌ Error ejecutando seeder de días de entrega:', error);

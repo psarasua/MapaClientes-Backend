@@ -4,7 +4,7 @@ export const successResponse = (res, data, message = 'Operación exitosa', statu
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -13,7 +13,7 @@ export const errorResponse = (res, message = 'Error en la operación', statusCod
     success: false,
     error: message,
     details: error,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -30,8 +30,8 @@ export const paginatedResponse = (res, data, page, limit, total, message = 'Dato
       total: parseInt(total),
       totalPages,
       hasNext: page < totalPages,
-      hasPrev: page > 1
+      hasPrev: page > 1,
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };

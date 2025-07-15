@@ -50,7 +50,7 @@ const validateEnvironmentVariables = () => {
   return {
     hasErrors: missingVars.length > 0,
     missingVars,
-    warnings
+    warnings,
   };
 };
 
@@ -120,7 +120,7 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
+  credentials: true,
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -138,7 +138,7 @@ const successResponse = (res, data, message = 'Operación exitosa', statusCode =
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -147,7 +147,7 @@ const errorResponse = (res, message = 'Error en la operación', statusCode = 400
     success: false,
     error: message,
     details: error,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -172,8 +172,8 @@ app.get('/api/ping', async (req, res) => {
         status: 'connected',
         responseTime: `${dbTime}ms`,
         serverTime: result.rows[0].current_time,
-        version: result.rows[0].db_version.split(' ')[0] + ' ' + result.rows[0].db_version.split(' ')[1]
-      }
+        version: result.rows[0].db_version.split(' ')[0] + ' ' + result.rows[0].db_version.split(' ')[1],
+      },
     };
 
     successResponse(res, response, '🏓 Pong! Sistema operativo');
@@ -187,8 +187,8 @@ app.get('/api/ping', async (req, res) => {
       message: 'API funcionando con problemas de BD',
       database: {
         status: 'disconnected',
-        error: error.message
-      }
+        error: error.message,
+      },
     };
 
     successResponse(res, response, '⚠️ API funcionando pero BD desconectada');

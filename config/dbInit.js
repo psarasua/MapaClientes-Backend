@@ -39,7 +39,7 @@ export const initializeDatabase = async (pool) => {
       'dias_entrega.sql',
       'camiones.sql', 
       'clientes.sql',
-      'camiones_dias.sql'
+      'camiones_dias.sql',
     ];
 
     // Ruta al directorio de esquemas - buscar en múltiples ubicaciones
@@ -55,7 +55,7 @@ export const initializeDatabase = async (pool) => {
       const alternativePaths = [
         path.join(currentDir, '..', '..', 'schema'),
         path.join(currentDir, 'schema'),
-        path.resolve('./schema')
+        path.resolve('./schema'),
       ];
       
       for (const altPath of alternativePaths) {
@@ -117,7 +117,7 @@ export const initializeDatabase = async (pool) => {
     return {
       success: true,
       tables: tables,
-      message: 'Base de datos inicializada correctamente'
+      message: 'Base de datos inicializada correctamente',
     };
 
   } catch (error) {

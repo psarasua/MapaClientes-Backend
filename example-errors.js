@@ -7,7 +7,7 @@ if (require.main === module) {
 
 // ❌ Error 2: Uso de module.exports en ES Module  
 module.exports = {
-  test: 'value'
+  test: 'value',
 };
 
 // ❌ Error 3: Uso de require en ES Module
