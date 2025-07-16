@@ -6,7 +6,7 @@ const app = express();
 
 app.use(express.json());
 
-app.get('/debug', async (req, res) => {
+app.get('/', async (req, res) => {
   try {
     // Intentar importar las rutas para ver si hay errores
     const imports = {};
