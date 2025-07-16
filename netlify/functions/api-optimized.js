@@ -3,8 +3,6 @@ import serverless from 'serverless-http';
 import { config, validateConfig } from '../config/index.js';
 import { setupMiddleware } from '../middleware/index.js';
 import { db, initializeDatabase } from '../db/index.js';
-import { errorHandler } from '../middleware/errorHandler.js';
-import { logger } from '../middleware/logger.js';
 
 // Importar rutas
 import camionesRoutes from '../routes/camiones.js';
@@ -56,26 +54,23 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Middleware de manejo de errores
-app.use(errorHandler);
-
 // Inicializar base de datos y aplicación
 let isInitialized = false;
 
 const initializeApp = async () => {
   if (isInitialized) return;
-  
+
   try {
     console.log('🚀 Iniciando aplicación...');
-    
+
     // Validar configuración
     validateConfig();
     console.log('✅ Configuración validada');
-    
+
     // Inicializar base de datos
     await initializeDatabase();
     console.log('✅ Base de datos inicializada');
-    
+
     isInitialized = true;
     console.log('🎉 Aplicación inicializada exitosamente');
   } catch (error) {

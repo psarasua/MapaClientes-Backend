@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DiasEntrega {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  // Relaciones
+  camionesDias CamionDia[]
+  
+  @@map("dias_entrega")
+}
+
+model Camiones {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  // Relaciones
+  camionesDias CamionDia[]
+  
+  @@map("camiones")
+}
+
+model Clientes {
+  id                Int      @id @default(autoincrement())
+  codigoAlternativo String?  @map("codigo_alternativo")
+  nombre            String
+  razon             String?
+  direccion         String?
+  telefono          String?
+  rut               String?
+  activo            Boolean  @default(true)
+  x                 String?
+  y                 String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  @@map("clientes")
+}
+
+model CamionDia {
+  id           Int      @id @default(autoincrement())
+  camionId     Int      @map("camion_id")
+  diaEntregaId Int      @map("dia_entrega_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  // Relaciones
+  camion     Camiones     @relation(fields: [camionId], references: [id])
+  diaEntrega DiasEntrega  @relation(fields: [diaEntregaId], references: [id])
+  
+  // Índice único para evitar duplicados
+  @@unique([camionId, diaEntregaId])
+  @@map("camiones_dias")
+}

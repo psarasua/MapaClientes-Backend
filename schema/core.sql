@@ -1,2 +1,0 @@
--- Este archivo ha sido dejado en blanco intencionalmente.
--- Las definiciones de las tablas ahora residen en archivos separados.

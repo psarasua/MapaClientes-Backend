@@ -10,16 +10,12 @@
     "dev": "netlify dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "lint:check": "eslint . --max-warnings 0",
-    "pre-commit": "npm run lint:check",
-    "validate": "npm run lint:check && echo '✅ Código validado correctamente'",
     "seed": "node seeders/index.js",
-    "seed:camiones": "node seeders/camionesSeeder.js",
-    "seed:dias": "node seeders/diasEntregaSeeder.js",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:seed": "prisma db seed"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
@@ -27,8 +23,6 @@
     "compression": "^1.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
-    "drizzle-kit": "^0.31.4",
-    "drizzle-orm": "^0.44.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.0",
     "express-validator": "^7.2.1",
@@ -36,12 +30,16 @@
     "joi": "^17.13.3",
     "morgan": "^1.10.0",
     "pg": "^8.16.3",
-    "prisma": "^6.12.0",
     "serverless-http": "^3.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "eslint": "^9.0.0",
-    "netlify-cli": "^22.2.2"
+    "netlify-cli": "^22.2.2",
+    "prisma": "^6.12.0"
+  },
+  "overrides": {
+    "@esbuild-kit/esm-loader": "npm:tsx@^4.20.3",
+    "@esbuild-kit/core-utils": "npm:tsx@^4.20.3"
   }
 }

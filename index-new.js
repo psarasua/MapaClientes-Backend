@@ -86,7 +86,8 @@ app.use((err, req, res, _next) => {
   res.status(500).json({
     success: false,
     message: 'Error interno del servidor',
-    error: config.nodeEnv === 'development' ? err.message : 'Something went wrong',
+    error:
+      config.nodeEnv === 'development' ? err.message : 'Something went wrong',
     timestamp: new Date().toISOString(),
   });
 });

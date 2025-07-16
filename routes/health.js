@@ -1,6 +1,6 @@
 // routes/health.js
 import express from 'express';
-import pool from '../config/database.js';
+import prisma from '../config/database.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
 
 const router = express.Router();
@@ -16,9 +16,9 @@ router.get('/', async (req, res) => {
   // Verificar base de datos
   try {
     const dbStart = Date.now();
-    await pool.query('SELECT 1');
+    await prisma.$queryRaw`SELECT 1`;
     const dbTime = Date.now() - dbStart;
-    
+
     healthCheck.services.database = {
       status: 'healthy',
       responseTime: `${dbTime}ms`,
@@ -47,7 +47,12 @@ router.get('/', async (req, res) => {
   const statusCode = isHealthy ? 200 : 503;
 
   if (isHealthy) {
-    successResponse(res, healthCheck, '✅ Sistema completamente saludable', statusCode);
+    successResponse(
+      res,
+      healthCheck,
+      '✅ Sistema completamente saludable',
+      statusCode,
+    );
   } else {
     errorResponse(res, '⚠️ Sistema con problemas', statusCode, healthCheck);
   }

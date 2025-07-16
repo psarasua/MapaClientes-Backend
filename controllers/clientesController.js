@@ -1,95 +1,157 @@
-import { getAllClientesModel, getClienteByIdModel, createClienteModel, updateClienteModel, patchClienteModel, deleteClienteModel, getClienteUbicacionModel } from '../models/clientesModel.js';
+import {
+  getAllClientes,
+  getClienteById,
+  createCliente,
+  updateCliente,
+  deleteCliente,
+  getClientesActivos,
+  searchClientes,
+} from '../models/clientesModel.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
 
-export const getAllClientes = async (req, res) => {
+export const getAllClientesController = async (req, res) => {
   try {
-    const clientes = await getAllClientesModel();
-    successResponse(res, clientes, 'Clientes obtenidos exitosamente');
+    const { page = 1, limit = 10, search = '', activo } = req.query;
+
+    const result = await getAllClientes({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      search,
+      activo,
+    });
+
+    successResponse(res, result, 'Clientes obtenidos exitosamente');
   } catch (error) {
     errorResponse(res, error.message, 500);
   }
 };
 
-export const getClienteById = async (req, res) => {
+export const getClienteByIdController = async (req, res) => {
   try {
     const { id } = req.params;
-    const cliente = await getClienteByIdModel(id);
-    
-    if (!cliente) {
-      return errorResponse(res, 'Cliente no encontrado', 404);
-    }
-    
+    const cliente = await getClienteById(id);
+
     successResponse(res, cliente, 'Cliente obtenido exitosamente');
   } catch (error) {
+    if (error.message === 'Cliente no encontrado') {
+      return errorResponse(res, error.message, 404);
+    }
     errorResponse(res, error.message, 500);
   }
 };
 
-export const createCliente = async (req, res) => {
+export const createClienteController = async (req, res) => {
   try {
-    const nuevoCliente = await createClienteModel(req.body);
+    const nuevoCliente = await createCliente(req.body);
     successResponse(res, nuevoCliente, 'Cliente creado exitosamente', 201);
   } catch (error) {
+    if (error.message === 'Ya existe un cliente con este RUT') {
+      return errorResponse(res, error.message, 400);
+    }
     errorResponse(res, error.message, 500);
   }
 };
 
-export const updateCliente = async (req, res) => {
+export const updateClienteController = async (req, res) => {
   try {
     const { id } = req.params;
-    const clienteActualizado = await updateClienteModel(id, req.body);
-    
-    if (!clienteActualizado) {
-      return errorResponse(res, 'Cliente no encontrado', 404);
-    }
-    
-    successResponse(res, clienteActualizado, 'Cliente actualizado exitosamente');
+    const clienteActualizado = await updateCliente(id, req.body);
+
+    successResponse(
+      res,
+      clienteActualizado,
+      'Cliente actualizado exitosamente',
+    );
   } catch (error) {
+    if (error.message === 'Cliente no encontrado') {
+      return errorResponse(res, error.message, 404);
+    }
+    if (error.message === 'Ya existe un cliente con este RUT') {
+      return errorResponse(res, error.message, 400);
+    }
     errorResponse(res, error.message, 500);
   }
 };
 
-export const patchCliente = async (req, res) => {
+export const deleteClienteController = async (req, res) => {
   try {
     const { id } = req.params;
-    const clienteActualizado = await patchClienteModel(id, req.body);
-    
-    if (!clienteActualizado) {
-      return errorResponse(res, 'Cliente no encontrado', 404);
-    }
-    
-    successResponse(res, clienteActualizado, 'Cliente actualizado exitosamente');
-  } catch (error) {
-    errorResponse(res, error.message, 500);
-  }
-};
+    await deleteCliente(id);
 
-export const deleteCliente = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const clienteEliminado = await deleteClienteModel(id);
-    
-    if (!clienteEliminado) {
-      return errorResponse(res, 'Cliente no encontrado', 404);
-    }
-    
     successResponse(res, null, 'Cliente eliminado exitosamente');
   } catch (error) {
+    if (error.message === 'Cliente no encontrado') {
+      return errorResponse(res, error.message, 404);
+    }
     errorResponse(res, error.message, 500);
   }
 };
 
-export const getClienteUbicacion = async (req, res) => {
+export const getClientesActivosController = async (req, res) => {
+  try {
+    const clientes = await getClientesActivos();
+    successResponse(res, clientes, 'Clientes activos obtenidos exitosamente');
+  } catch (error) {
+    errorResponse(res, error.message, 500);
+  }
+};
+
+export const searchClientesController = async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q) {
+      return errorResponse(res, 'Parámetro de búsqueda requerido', 400);
+    }
+
+    const clientes = await searchClientes(q);
+    successResponse(res, clientes, 'Búsqueda completada exitosamente');
+  } catch (error) {
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// Funciones PATCH para compatibilidad
+export const patchClienteController = async (req, res) => {
   try {
     const { id } = req.params;
-    const ubicacion = await getClienteUbicacionModel(id);
-    
-    if (!ubicacion) {
-      return errorResponse(res, 'Cliente no encontrado', 404);
-    }
-    
-    successResponse(res, ubicacion, 'Ubicación del cliente obtenida exitosamente');
+    const clienteActualizado = await updateCliente(id, req.body);
+
+    successResponse(
+      res,
+      clienteActualizado,
+      'Cliente actualizado exitosamente',
+    );
   } catch (error) {
+    if (error.message === 'Cliente no encontrado') {
+      return errorResponse(res, error.message, 404);
+    }
+    if (error.message === 'Ya existe un cliente con este RUT') {
+      return errorResponse(res, error.message, 400);
+    }
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// Función para obtener ubicación de cliente
+export const getClienteUbicacionController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cliente = await getClienteById(id);
+
+    const ubicacion = {
+      id: cliente.id,
+      nombre: cliente.nombre,
+      x: cliente.x,
+      y: cliente.y,
+      direccion: cliente.direccion,
+    };
+
+    successResponse(res, ubicacion, 'Ubicación obtenida exitosamente');
+  } catch (error) {
+    if (error.message === 'Cliente no encontrado') {
+      return errorResponse(res, error.message, 404);
+    }
     errorResponse(res, error.message, 500);
   }
 };

@@ -1,36 +1,26 @@
 // seeders/index.js
-// Archivo principal para ejecutar todos los seeders
-
+import prisma from '../lib/prisma.js';
 import { seedCamiones } from './camionesSeeder.js';
-import { seedDiasEntrega } from './diasEntregaSeeder.js';
-// import { seedCamionesDias } from './camionesDiasSeeder.js';
-// import { seedCore } from './coreSeeder.js';
+import { seedDiasEntrega } from './diasSeeder.js';
+import { seedClientes } from './clientesSeeder.js';
+import { seedCamionesDias } from './relacionesSeeder.js';
 
-export async function runAllSeeders() {
+async function main() {
   try {
-    console.log('🌱 Iniciando proceso de seeding...');
+    console.log('🌱 Iniciando proceso de seeding con Prisma...');
 
-    await seedCamiones();
     await seedDiasEntrega();
-    // await seedCamionesDias();
-    // await seedCore();
+    await seedCamiones();
+    await seedClientes();
+    await seedCamionesDias();
 
-    console.log('✅ Todos los seeders ejecutados exitosamente');
+    console.log('🎉 Seeding completado exitosamente!');
   } catch (error) {
-    console.error('❌ Error ejecutando seeders:', error);
+    console.error('❌ Error durante el seeding:', error);
     throw error;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-// Ejecutar si se llama directamente desde Node.js
-if (typeof process !== 'undefined' && process.argv && process.argv[1] && process.argv[1].includes('index.js')) {
-  runAllSeeders()
-    .then(() => {
-      console.log('🎉 Seeding completado');
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error('💥 Error en seeding:', error);
-      process.exit(1);
-    });
-}
+main();

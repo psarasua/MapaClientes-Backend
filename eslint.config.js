@@ -19,20 +19,21 @@ export default [
       // Reglas específicas para ES Modules
       'no-undef': 'error',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      
+
       // Prevenir uso de CommonJS en ES modules
       'no-global-assign': 'error',
       'no-implicit-globals': 'error',
-      
+
       // Reglas para imports/exports
       'no-duplicate-imports': 'error',
-      
+
       // Detectar uso incorrecto de module/require en ES modules
       'no-restricted-globals': [
         'error',
         {
           name: 'module',
-          message: 'Use ES modules (import/export) instead of CommonJS (module.exports/require)',
+          message:
+            'Use ES modules (import/export) instead of CommonJS (module.exports/require)',
         },
         {
           name: 'require',
@@ -43,28 +44,28 @@ export default [
           message: 'Use ES modules (export) instead of CommonJS (exports)',
         },
       ],
-      
+
       // Reglas para async/await
       'require-await': 'warn',
       'no-async-promise-executor': 'error',
       'no-await-in-loop': 'warn',
-      
+
       // Reglas de calidad de código
       'no-console': 'off', // Permitido para logging en servidor
       'no-debugger': 'error',
       'no-alert': 'error',
-      
+
       // Reglas de estilo
-      'indent': ['error', 2],
-      'quotes': ['error', 'single'],
-      'semi': ['error', 'always'],
+      indent: ['error', 2],
+      quotes: ['error', 'single'],
+      semi: ['error', 'always'],
       'comma-dangle': ['error', 'always-multiline'],
-      
+
       // Reglas específicas para Netlify Functions
       'no-process-exit': 'warn', // Advertencia en lugar de error para serverless
     },
   },
-  
+
   // Configuración específica para archivos de Netlify Functions
   {
     files: ['netlify/functions/**/*.js'],
@@ -82,7 +83,7 @@ export default [
       'no-console': 'off', // Permitir console.log en functions
     },
   },
-  
+
   // Configuración para seeders
   {
     files: ['seeders/**/*.js'],
@@ -100,7 +101,7 @@ export default [
       'no-console': 'off',
     },
   },
-  
+
   // Configuración para archivos de configuración
   {
     files: ['config/**/*.js'],
@@ -115,7 +116,7 @@ export default [
       },
     },
   },
-  
+
   // Ignorar archivos específicos
   {
     ignores: [
@@ -129,7 +130,6 @@ export default [
       '*.temp',
       '.DS_Store',
       'Thumbs.db',
-      '.vscode/',
       '.idea/',
       '.env',
       '.env.local',

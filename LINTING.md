@@ -12,17 +12,12 @@ npm run lint
 
 # Corregir automáticamente errores que se pueden arreglar
 npm run lint:fix
-
-# Verificar código sin permitir warnings (útil para CI/CD)
-npm run lint:check
-
-# Validar todo el proyecto
-npm run validate
 ```
 
 ## 🛡️ Reglas Importantes
 
 ### ES Modules
+
 - ❌ **Prohibido**: `module.exports`, `require()`, `exports`
 - ✅ **Usar**: `import`, `export`
 
@@ -31,21 +26,21 @@ npm run validate
 ```javascript
 // ❌ Error - CommonJS en ES Module
 if (require.main === module) {
-  console.log('archivo principal');
+  console.log("archivo principal");
 }
 
 // ✅ Correcto - ES Module
 if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log('archivo principal');
+  console.log("archivo principal");
 }
 ```
 
 ```javascript
 // ❌ Error - module no definido en ES Module
-module.exports = function() {};
+module.exports = function () {};
 
 // ✅ Correcto - ES Module
-export default function() {}
+export default function () {}
 ```
 
 ## 🔧 Configuración por Tipo de Archivo
@@ -63,27 +58,32 @@ export default function() {}
 ## 🚨 Errores Comunes y Soluciones
 
 ### 1. "module is not defined"
+
 ```javascript
 // ❌ Problema
-if (require.main === module) { }
+if (require.main === module) {
+}
 
 // ✅ Solución ES Module
-if (import.meta.url === `file://${process.argv[1]}`) { }
+if (import.meta.url === `file://${process.argv[1]}`) {
+}
 
 // ✅ Alternativa más simple - remover la verificación
 // No necesario en contexto de Netlify Functions
 ```
 
 ### 2. "require is not defined"
+
 ```javascript
 // ❌ Problema
-const fs = require('fs');
+const fs = require("fs");
 
 // ✅ Solución
-import fs from 'fs';
+import fs from "fs";
 ```
 
 ### 3. Variables no utilizadas
+
 ```javascript
 // ❌ Warning
 const pool = new Pool();
@@ -95,6 +95,7 @@ const _pool = new Pool(); // Si realmente no se usa
 ## 📋 Pre-commit Hook
 
 El proyecto incluye un hook de pre-commit que:
+
 - Ejecuta ESLint antes de cada commit
 - Bloquea commits con errores
 - Sugiere `npm run lint:fix` para correcciones automáticas
@@ -109,11 +110,13 @@ El proyecto incluye un hook de pre-commit que:
 ## 🔍 Verificación Manual
 
 Para verificar un archivo específico:
+
 ```bash
 npx eslint netlify/functions/api.js
 ```
 
 Para corregir un archivo específico:
+
 ```bash
 npx eslint netlify/functions/api.js --fix
 ```

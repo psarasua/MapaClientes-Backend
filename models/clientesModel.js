@@ -1,181 +1,196 @@
 // models/clientesModel.js
-import pool from '../config/database.js';
+import prisma from '../lib/prisma.js';
 
 // Obtener todos los clientes con paginación y filtros
-export async function getAllClientes({ page = 1, limit = 10, search = '', activo = undefined }) {
-  const offset = (page - 1) * limit;
-  
-  // Construir query dinámicamente
-  let whereClause = 'WHERE 1=1';
-  const params = [];
-  let paramCount = 0;
+export async function getAllClientes({
+  page = 1,
+  limit = 10,
+  search = '',
+  activo = undefined,
+}) {
+  const skip = (page - 1) * limit;
+
+  // Construir filtros dinámicamente
+  const where = {};
 
   if (search) {
-    paramCount++;
-    whereClause += ` AND (nombre ILIKE $${paramCount} OR razon ILIKE $${paramCount} OR direccion ILIKE $${paramCount})`;
-    params.push(`%${search}%`);
+    where.OR = [
+      { nombre: { contains: search, mode: 'insensitive' } },
+      { razon: { contains: search, mode: 'insensitive' } },
+      { direccion: { contains: search, mode: 'insensitive' } },
+    ];
   }
 
   if (activo !== undefined) {
-    paramCount++;
-    whereClause += ` AND activo = $${paramCount}`;
-    params.push(activo === 'true');
+    where.activo = activo === 'true';
   }
 
-  // Contar total de registros
-  const countQuery = `SELECT COUNT(*) FROM clientes ${whereClause}`;
-  const countResult = await pool.query(countQuery, params);
-  const total = parseInt(countResult.rows[0].count);
+  // Obtener total de registros
+  const total = await prisma.clientes.count({ where });
 
   // Obtener registros paginados
-  paramCount++;
-  const limit_param = paramCount;
-  paramCount++;
-  const offset_param = paramCount;
-  
-  const query = `
-    SELECT id, codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y
-    FROM clientes 
-    ${whereClause}
-    ORDER BY nombre ASC
-    LIMIT $${limit_param} OFFSET $${offset_param}
-  `;
-  
-  params.push(limit, offset);
-  const result = await pool.query(query, params);
+  const data = await prisma.clientes.findMany({
+    where,
+    skip,
+    take: limit,
+    orderBy: { nombre: 'asc' },
+    select: {
+      id: true,
+      codigoAlternativo: true,
+      nombre: true,
+      razon: true,
+      direccion: true,
+      telefono: true,
+      rut: true,
+      activo: true,
+      x: true,
+      y: true,
+    },
+  });
 
   return {
-    data: result.rows,
+    data,
     total,
   };
 }
 
 // Obtener cliente por ID
 export async function getClienteById(id) {
-  const query = 'SELECT * FROM clientes WHERE id = $1';
-  const result = await pool.query(query, [id]);
-  
-  return result.rows[0] || null;
+  const cliente = await prisma.clientes.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!cliente) {
+    throw new Error('Cliente no encontrado');
+  }
+
+  return cliente;
 }
 
 // Crear nuevo cliente
 export async function createCliente(clienteData) {
-  const {
-    codigo_alternativo,
-    nombre,
-    razon,
-    direccion,
-    telefono,
-    rut,
-    activo = true,
-    x,
-    y,
-  } = clienteData;
+  // Validar que no exista otro cliente con el mismo RUT
+  if (clienteData.rut) {
+    const existingClient = await prisma.clientes.findFirst({
+      where: { rut: clienteData.rut },
+    });
 
-  const query = `
-    INSERT INTO clientes (codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    RETURNING *
-  `;
-
-  const values = [codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y];
-  const result = await pool.query(query, values);
-  return result.rows[0];
-}
-
-// Actualizar cliente completo
-export async function updateCliente(id, clienteData) {
-  const {
-    codigo_alternativo,
-    nombre,
-    razon,
-    direccion,
-    telefono,
-    rut,
-    activo,
-    x,
-    y,
-  } = clienteData;
-
-  const query = `
-    UPDATE clientes 
-    SET codigo_alternativo = $1, nombre = $2, razon = $3, direccion = $4, 
-        telefono = $5, rut = $6, activo = $7, x = $8, y = $9
-    WHERE id = $10
-    RETURNING *
-  `;
-
-  const values = [codigo_alternativo, nombre, razon, direccion, telefono, rut, activo, x, y, id];
-  const result = await pool.query(query, values);
-  return result.rows[0] || null;
-}
-
-// Actualizar cliente parcialmente
-export async function patchCliente(id, updates) {
-  const allowedFields = ['codigo_alternativo', 'nombre', 'razon', 'direccion', 'telefono', 'rut', 'activo', 'x', 'y'];
-  const setClause = [];
-  const values = [];
-  let paramCount = 0;
-
-  for (const field of allowedFields) {
-    if (updates[field] !== undefined) {
-      paramCount++;
-      setClause.push(`${field} = $${paramCount}`);
-      values.push(updates[field]);
+    if (existingClient) {
+      throw new Error('Ya existe un cliente con este RUT');
     }
   }
 
-  if (setClause.length === 0) {
-    return null;
+  const cliente = await prisma.clientes.create({
+    data: {
+      codigoAlternativo: clienteData.codigoAlternativo,
+      nombre: clienteData.nombre,
+      razon: clienteData.razon,
+      direccion: clienteData.direccion,
+      telefono: clienteData.telefono,
+      rut: clienteData.rut,
+      activo: clienteData.activo !== undefined ? clienteData.activo : true,
+      x: clienteData.x,
+      y: clienteData.y,
+    },
+  });
+
+  return cliente;
+}
+
+// Actualizar cliente
+export async function updateCliente(id, clienteData) {
+  // Verificar que el cliente existe
+  const existingClient = await prisma.clientes.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!existingClient) {
+    throw new Error('Cliente no encontrado');
   }
 
-  paramCount++;
-  values.push(id);
+  // Validar RUT único (excepto el cliente actual)
+  if (clienteData.rut && clienteData.rut !== existingClient.rut) {
+    const duplicateClient = await prisma.clientes.findFirst({
+      where: {
+        rut: clienteData.rut,
+        NOT: { id: parseInt(id) },
+      },
+    });
 
-  const query = `
-    UPDATE clientes 
-    SET ${setClause.join(', ')}
-    WHERE id = $${paramCount}
-    RETURNING *
-  `;
+    if (duplicateClient) {
+      throw new Error('Ya existe un cliente con este RUT');
+    }
+  }
 
-  const result = await pool.query(query, values);
-  return result.rows[0] || null;
+  const cliente = await prisma.clientes.update({
+    where: { id: parseInt(id) },
+    data: {
+      codigoAlternativo: clienteData.codigoAlternativo,
+      nombre: clienteData.nombre,
+      razon: clienteData.razon,
+      direccion: clienteData.direccion,
+      telefono: clienteData.telefono,
+      rut: clienteData.rut,
+      activo: clienteData.activo,
+      x: clienteData.x,
+      y: clienteData.y,
+    },
+  });
+
+  return cliente;
 }
 
-// Eliminar cliente
+// Eliminar cliente (soft delete)
 export async function deleteCliente(id) {
-  const query = 'DELETE FROM clientes WHERE id = $1 RETURNING *';
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
+  const cliente = await prisma.clientes.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!cliente) {
+    throw new Error('Cliente no encontrado');
+  }
+
+  // Soft delete - marcar como inactivo
+  return await prisma.clientes.update({
+    where: { id: parseInt(id) },
+    data: { activo: false },
+  });
 }
 
-// Obtener solo la ubicación de un cliente
-export async function getClienteUbicacion(id) {
-  const query = 'SELECT id, nombre, x, y FROM clientes WHERE id = $1 AND x IS NOT NULL AND y IS NOT NULL';
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
+// Eliminar cliente permanentemente
+export async function deleteClientePermanente(id) {
+  const cliente = await prisma.clientes.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!cliente) {
+    throw new Error('Cliente no encontrado');
+  }
+
+  return await prisma.clientes.delete({
+    where: { id: parseInt(id) },
+  });
 }
 
 // Obtener clientes activos
 export async function getClientesActivos() {
-  const query = 'SELECT * FROM clientes WHERE activo = true ORDER BY nombre ASC';
-  const result = await pool.query(query);
-  return result.rows;
+  return await prisma.clientes.findMany({
+    where: { activo: true },
+    orderBy: { nombre: 'asc' },
+  });
 }
 
-// Obtener clientes con ubicación
-export async function getClientesConUbicacion() {
-  const query = 'SELECT * FROM clientes WHERE x IS NOT NULL AND y IS NOT NULL ORDER BY nombre ASC';
-  const result = await pool.query(query);
-  return result.rows;
+// Buscar clientes por término
+export async function searchClientes(searchTerm) {
+  return await prisma.clientes.findMany({
+    where: {
+      OR: [
+        { nombre: { contains: searchTerm, mode: 'insensitive' } },
+        { razon: { contains: searchTerm, mode: 'insensitive' } },
+        { direccion: { contains: searchTerm, mode: 'insensitive' } },
+        { rut: { contains: searchTerm, mode: 'insensitive' } },
+      ],
+    },
+    orderBy: { nombre: 'asc' },
+  });
 }
-
-// Exportar funciones individuales para los controladores (compatibilidad hacia atrás)
-export const getAllClientesModel = (filters = {}) => getAllClientes(filters);
-export const getClienteByIdModel = (id) => getClienteById(id);
-export const createClienteModel = (clienteData) => createCliente(clienteData);
-export const updateClienteModel = (id, clienteData) => updateCliente(id, clienteData);
-export const patchClienteModel = (id, updates) => patchCliente(id, updates);
-export const deleteClienteModel = (id) => deleteCliente(id);
-export const getClienteUbicacionModel = (id) => getClienteUbicacion(id);

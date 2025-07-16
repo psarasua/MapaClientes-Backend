@@ -1,136 +1,161 @@
 // models/diasEntregaModel.js
-import pool from "../config/database.js";
+import prisma from '../lib/prisma.js';
 
-// Obtener todos los días de entrega con paginación y filtros
-export async function getAllDiasEntrega({ page = 1, limit = 10, search = "" }) {
-  const offset = (page - 1) * limit;
-
-  // Construir query dinámicamente
-  let whereClause = "WHERE 1=1";
-  const params = [];
-  let paramCount = 0;
-
-  if (search) {
-    paramCount++;
-    whereClause += ` AND descripcion ILIKE $${paramCount}`;
-    params.push(`%${search}%`);
-  }
-
-  // Contar total de registros
-  const countQuery = `SELECT COUNT(*) FROM dias_entrega ${whereClause}`;
-  const countResult = await pool.query(countQuery, params);
-  const total = parseInt(countResult.rows[0].count);
-
-  // Obtener registros paginados
-  paramCount++;
-  const limit_param = paramCount;
-  paramCount++;
-  const offset_param = paramCount;
-
-  const query = `
-    SELECT id, descripcion
-    FROM dias_entrega 
-    ${whereClause}
-    ORDER BY id ASC
-    LIMIT $${limit_param} OFFSET $${offset_param}
-  `;
-
-  params.push(limit, offset);
-  const result = await pool.query(query, params);
-
-  return {
-    data: result.rows,
-    total,
-  };
+// Obtener todos los días de entrega
+export async function getAllDiasEntrega() {
+  return await prisma.diasEntrega.findMany({
+    orderBy: { descripcion: 'asc' },
+    include: {
+      camionesDias: {
+        include: {
+          camion: true,
+        },
+      },
+    },
+  });
 }
 
 // Obtener día de entrega por ID
 export async function getDiaEntregaById(id) {
-  const query = "SELECT * FROM dias_entrega WHERE id = $1";
-  const result = await pool.query(query, [id]);
+  const diaEntrega = await prisma.diasEntrega.findUnique({
+    where: { id: parseInt(id) },
+    include: {
+      camionesDias: {
+        include: {
+          camion: true,
+        },
+      },
+    },
+  });
 
-  return result.rows[0] || null;
+  if (!diaEntrega) {
+    throw new Error('Día de entrega no encontrado');
+  }
+
+  return diaEntrega;
 }
 
 // Crear nuevo día de entrega
-export async function createDiaEntrega(diaData) {
-  const { descripcion } = diaData;
-
-  const query = `
-    INSERT INTO dias_entrega (descripcion)
-    VALUES ($1)
-    RETURNING *
-  `;
-
-  const result = await pool.query(query, [descripcion]);
-  return result.rows[0];
+export async function createDiaEntrega(diaEntregaData) {
+  return await prisma.diasEntrega.create({
+    data: {
+      descripcion: diaEntregaData.descripcion,
+    },
+  });
 }
 
 // Actualizar día de entrega
-export async function updateDiaEntrega(id, diaData) {
-  const { descripcion } = diaData;
+export async function updateDiaEntrega(id, diaEntregaData) {
+  const existingDiaEntrega = await prisma.diasEntrega.findUnique({
+    where: { id: parseInt(id) },
+  });
 
-  const query = `
-    UPDATE dias_entrega 
-    SET descripcion = $1
-    WHERE id = $2
-    RETURNING *
-  `;
+  if (!existingDiaEntrega) {
+    throw new Error('Día de entrega no encontrado');
+  }
 
-  const result = await pool.query(query, [descripcion, id]);
-  return result.rows[0] || null;
+  return await prisma.diasEntrega.update({
+    where: { id: parseInt(id) },
+    data: {
+      descripcion: diaEntregaData.descripcion,
+    },
+  });
 }
 
 // Eliminar día de entrega
 export async function deleteDiaEntrega(id) {
-  const query = "DELETE FROM dias_entrega WHERE id = $1 RETURNING *";
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
+  const existingDiaEntrega = await prisma.diasEntrega.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!existingDiaEntrega) {
+    throw new Error('Día de entrega no encontrado');
+  }
+
+  // Eliminar primero las relaciones
+  await prisma.camionDia.deleteMany({
+    where: { diaEntregaId: parseInt(id) },
+  });
+
+  // Luego eliminar el día de entrega
+  return await prisma.diasEntrega.delete({
+    where: { id: parseInt(id) },
+  });
 }
 
-// Verificar si el día de entrega está siendo usado
-export async function isDiaEntregaUsed(id) {
-  const checkUsageQuery = `
-    SELECT COUNT(*) as count 
-    FROM camiones_dias 
-    WHERE dia_entrega_id = $1
-  `;
-
-  const usageResult = await pool.query(checkUsageQuery, [id]);
-  return usageResult.rows[0].count > 0;
+// Obtener días de entrega con sus camiones
+export async function getDiasEntregaConCamiones() {
+  return await prisma.diasEntrega.findMany({
+    include: {
+      camionesDias: {
+        include: {
+          camion: true,
+        },
+        orderBy: {
+          camion: {
+            descripcion: 'asc',
+          },
+        },
+      },
+    },
+    orderBy: { descripcion: 'asc' },
+  });
 }
 
-// Obtener días de entrega con sus camiones asignados
-export async function getDiasEntregaWithCamiones() {
-  const query = `
-    SELECT 
-      d.id,
-      d.descripcion,
-      COALESCE(
-        json_agg(
-          json_build_object(
-            'id', c.id,
-            'descripcion', c.descripcion
-          )
-        ) FILTER (WHERE c.id IS NOT NULL),
-        '[]'
-      ) as camiones_asignados
-    FROM dias_entrega d
-    LEFT JOIN camiones_dias cd ON d.id = cd.dia_entrega_id
-    LEFT JOIN camiones c ON cd.camion_id = c.id
-    GROUP BY d.id, d.descripcion
-    ORDER BY d.id ASC
-  `;
-
-  const result = await pool.query(query);
-  return result.rows;
+// Obtener días de entrega disponibles (sin formato específico)
+export async function getDiasEntregaDisponibles() {
+  return await prisma.diasEntrega.findMany({
+    select: {
+      id: true,
+      descripcion: true,
+    },
+    orderBy: { descripcion: 'asc' },
+  });
 }
 
-// Exportar funciones individuales para los controladores (compatibilidad hacia atrás)
-export const getAllDiasEntregaModel = (filters = {}) =>
-  getAllDiasEntrega(filters);
-export const getDiaEntregaByIdModel = (id) => getDiaEntregaById(id);
-export const createDiaEntregaModel = (diaData) => createDiaEntrega(diaData);
-export const updateDiaEntregaModel = (id, diaData) =>
-  updateDiaEntrega(id, diaData);
-export const deleteDiaEntregaModel = (id) => deleteDiaEntrega(id);
+// Obtener camiones asignados a un día de entrega
+export async function getCamionesDia(diaEntregaId) {
+  const diaEntrega = await prisma.diasEntrega.findUnique({
+    where: { id: parseInt(diaEntregaId) },
+    include: {
+      camionesDias: {
+        include: {
+          camion: true,
+        },
+      },
+    },
+  });
+
+  if (!diaEntrega) {
+    throw new Error('Día de entrega no encontrado');
+  }
+
+  return diaEntrega.camionesDias.map((cd) => cd.camion);
+}
+
+// Asignar camiones a un día de entrega
+export async function asignarCamionesADia(diaEntregaId, camionesIds) {
+  // Verificar que el día de entrega existe
+  const diaEntrega = await prisma.diasEntrega.findUnique({
+    where: { id: parseInt(diaEntregaId) },
+  });
+
+  if (!diaEntrega) {
+    throw new Error('Día de entrega no encontrado');
+  }
+
+  // Eliminar asignaciones anteriores
+  await prisma.camionDia.deleteMany({
+    where: { diaEntregaId: parseInt(diaEntregaId) },
+  });
+
+  // Crear nuevas asignaciones
+  const asignaciones = camionesIds.map((camionId) => ({
+    camionId: parseInt(camionId),
+    diaEntregaId: parseInt(diaEntregaId),
+  }));
+
+  return await prisma.camionDia.createMany({
+    data: asignaciones,
+  });
+}

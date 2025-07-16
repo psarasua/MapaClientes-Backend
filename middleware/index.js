@@ -31,10 +31,10 @@ export const rateLimitConfig = rateLimit({
 export const helmetConfig = helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'https:'],
+      defaultSrc: ['\'self\''],
+      styleSrc: ['\'self\'', '\'unsafe-inline\''],
+      scriptSrc: ['\'self\''],
+      imgSrc: ['\'self\'', 'data:', 'https:'],
     },
   },
   crossOriginEmbedderPolicy: false,
@@ -59,7 +59,7 @@ export const morganConfig = morgan(
     : 'dev',
   {
     skip: (req, res) => req.url === '/health' || req.url === '/ping',
-  }
+  },
 );
 
 // Middleware para parsing de JSON optimizado
