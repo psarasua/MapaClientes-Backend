@@ -1,43 +1,41 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
-import { config, validateConfig } from './config/index.js';
+// index.js
+console.log("🚀 Iniciando servidor...");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+
+console.log("📦 Imports cargados correctamente");
 
 // Configurar variables de entorno
 dotenv.config();
-
-// Validar configuración
-validateConfig();
+console.log("🔧 Variables de entorno configuradas");
 
 // Importar rutas
-import clientesRoutes from './routes/clientes.js';
-import camionesRoutes from './routes/camiones.js';
-import diasEntregaRoutes from './routes/diasEntrega.js';
-import healthRoutes from './routes/health.js';
-import pingRoutes from './routes/ping.js';
+import camionesRoutes from "./routes/camiones.js";
+import clientesRoutes from "./routes/clientes.js";
+import diasEntregaRoutes from "./routes/diasEntrega.js";
+import healthRoutes from "./routes/health.js";
+import pingRoutes from "./routes/ping.js";
 
-// Crear aplicación Express
+console.log("🛣️ Rutas importadas correctamente");
+
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Configurar rate limiting
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.max,
-  message: {
-    error: 'Too many requests from this IP, please try again later.',
-  },
-});
+console.log("⚙️ Configurando middlewares...");
 
-// Middlewares globales
-app.use(helmet());
-app.use(cors(config.cors));
-app.use(compression());
-app.use(limiter);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Middlewares
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Middleware de logging
 app.use((req, res, next) => {
@@ -45,69 +43,78 @@ app.use((req, res, next) => {
   next();
 });
 
+console.log("🌐 Configurando rutas...");
+
 // Rutas principales
-app.use('/api/clientes', clientesRoutes);
-app.use('/api/camiones', camionesRoutes);
-app.use('/api/dias-entrega', diasEntregaRoutes);
-app.use('/api/health', healthRoutes);
-app.use('/api/ping', pingRoutes);
-
-// Ruta de información de la API
-app.get('/api', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: 'API MapaClientes Backend',
-    version: '1.0.0',
+    message: "Bienvenido a MapaClientes Backend API",
+    version: "2.0.0",
+    timestamp: new Date().toISOString(),
     endpoints: {
-      clientes: '/api/clientes',
-      camiones: '/api/camiones',
-      diasEntrega: '/api/dias-entrega',
-      health: '/api/health',
-      ping: '/api/ping',
+      camiones: "/api/camiones",
+      clientes: "/api/clientes",
+      diasEntrega: "/api/dias-entrega",
+      health: "/api/health",
+      ping: "/api/ping",
     },
-    timestamp: new Date().toISOString(),
   });
 });
 
-// Ruta raíz
-app.get('/', (req, res) => {
+app.get("/api", (req, res) => {
   res.json({
     success: true,
-    message: 'Bienvenido a MapaClientes Backend API',
-    version: '1.0.0',
-    documentation: '/api',
+    message: "API MapaClientes Backend",
+    version: "2.0.0",
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    endpoints: {
+      camiones: "/api/camiones",
+      clientes: "/api/clientes",
+      diasEntrega: "/api/dias-entrega",
+      health: "/api/health",
+      ping: "/api/ping",
+    },
   });
 });
 
-// Middleware de manejo de errores
-app.use((err, req, res, _next) => {
-  console.error('Error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Error interno del servidor',
-    error: config.nodeEnv === 'development' ? err.message : 'Something went wrong',
-    timestamp: new Date().toISOString(),
-  });
-});
+// Usar las rutas
+app.use("/api/camiones", camionesRoutes);
+app.use("/api/clientes", clientesRoutes);
+app.use("/api/dias-entrega", diasEntregaRoutes);
+app.use("/api/health", healthRoutes);
+app.use("/api/ping", pingRoutes);
 
-// Middleware para rutas no encontradas
-app.use('*', (req, res) => {
+// Manejo de rutas no encontradas
+app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Ruta no encontrada',
+    message: "Ruta no encontrada",
     path: req.originalUrl,
     timestamp: new Date().toISOString(),
   });
 });
 
+// Manejo de errores
+app.use((err, req, res, _next) => {
+  console.error("❌ Error:", err);
+  res.status(500).json({
+    success: false,
+    message: "Error interno del servidor",
+    error:
+      process.env.NODE_ENV === "production" ? "Algo salió mal" : err.message,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+console.log("🎯 Iniciando servidor en puerto", PORT);
+
 // Iniciar servidor
-const PORT = config.port;
 app.listen(PORT, () => {
-  console.log('🚀 Servidor corriendo en http://localhost:' + PORT);
-  console.log('📊 API disponible en http://localhost:' + PORT + '/api');
-  console.log('🏓 Health check en http://localhost:' + PORT + '/api/ping');
-  console.log('🎯 Prisma Studio: npx prisma studio');
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+  console.log(`📡 API disponible en: http://localhost:${PORT}/api`);
+  console.log(`🏥 Health check en: http://localhost:${PORT}/api/health`);
 });
 
 export default app;

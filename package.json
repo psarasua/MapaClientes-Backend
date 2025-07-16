@@ -6,9 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
+    "dev": "node index.js",
     "build": "npm install && npx prisma generate",
     "postinstall": "prisma generate",
-    "dev": "netlify dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "seed": "node seeders/index.js",
@@ -21,22 +21,14 @@
   "dependencies": {
     "@prisma/client": "^6.12.0",
     "@types/node": "^24.0.14",
-    "compression": "^1.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "express-rate-limit": "^8.0.0",
-    "express-validator": "^7.2.1",
-    "helmet": "^8.1.0",
-    "joi": "^17.13.3",
-    "morgan": "^1.10.0",
-    "pg": "^8.16.3",
-    "serverless-http": "^3.2.0"
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "eslint": "^9.0.0",
-    "netlify-cli": "^22.2.2",
     "prisma": "^6.12.0"
   },
   "overrides": {
