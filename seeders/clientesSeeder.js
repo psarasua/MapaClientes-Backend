@@ -1,29 +1,29 @@
 // seeders/clientesSeeder.js
-import prisma from "../lib/prisma.js";
+import prisma from '../lib/prisma.js';
 
 export async function seedClientes() {
-  console.log("👥 Creando clientes de ejemplo...");
+  console.log('👥 Creando clientes de ejemplo...');
 
   const clientes = [
     {
-      nombre: "Empresa ABC",
-      razon: "ABC S.A.",
-      direccion: "Av. Principal 123",
-      telefono: "+56912345678",
-      rut: "12345678-9",
+      nombre: 'Empresa ABC',
+      razon: 'ABC S.A.',
+      direccion: 'Av. Principal 123',
+      telefono: '+56912345678',
+      rut: '12345678-9',
       activo: true,
-      x: "-33.4489",
-      y: "-70.6693",
+      x: '-33.4489',
+      y: '-70.6693',
     },
     {
-      nombre: "Comercial XYZ",
-      razon: "XYZ Ltda.",
-      direccion: "Calle Secundaria 456",
-      telefono: "+56987654321",
-      rut: "87654321-K",
+      nombre: 'Comercial XYZ',
+      razon: 'XYZ Ltda.',
+      direccion: 'Calle Secundaria 456',
+      telefono: '+56987654321',
+      rut: '87654321-K',
       activo: true,
-      x: "-33.4569",
-      y: "-70.6483",
+      x: '-33.4569',
+      y: '-70.6483',
     },
   ];
 
@@ -39,5 +39,5 @@ export async function seedClientes() {
 
   await Promise.all(promises);
 
-  console.log("✅ Clientes creados exitosamente");
+  console.log('✅ Clientes creados exitosamente');
 }

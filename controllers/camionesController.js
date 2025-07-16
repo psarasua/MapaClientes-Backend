@@ -1,29 +1,25 @@
 import {
-  getAllCamiones,
-  getCamionById,
-  createCamion,
-  updateCamion,
-  deleteCamion,
-  getCamionesConDias,
-  asignarDiasACamion,
-  getDiasCamion,
+  getAllCamiones as getAllCamionesModel,
+  getCamionById as getCamionByIdModel,
+  createCamion as createCamionModel,
+  updateCamion as updateCamionModel,
+  deleteCamion as deleteCamionModel,
 } from '../models/camionesModel.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
 
-export const getAllCamionesController = async (req, res) => {
+export const getAllCamiones = async (req, res) => {
   try {
-    const camiones = await getAllCamiones();
+    const camiones = await getAllCamionesModel();
     successResponse(res, camiones, 'Camiones obtenidos exitosamente');
   } catch (error) {
     errorResponse(res, error.message, 500);
   }
 };
 
-export const getCamionByIdController = async (req, res) => {
+export const getCamionById = async (req, res) => {
   try {
     const { id } = req.params;
-    const camion = await getCamionById(id);
-
+    const camion = await getCamionByIdModel(id);
     successResponse(res, camion, 'Camión obtenido exitosamente');
   } catch (error) {
     if (error.message === 'Camión no encontrado') {
@@ -33,20 +29,19 @@ export const getCamionByIdController = async (req, res) => {
   }
 };
 
-export const createCamionController = async (req, res) => {
+export const createCamion = async (req, res) => {
   try {
-    const nuevoCamion = await createCamion(req.body);
+    const nuevoCamion = await createCamionModel(req.body);
     successResponse(res, nuevoCamion, 'Camión creado exitosamente', 201);
   } catch (error) {
     errorResponse(res, error.message, 500);
   }
 };
 
-export const updateCamionController = async (req, res) => {
+export const updateCamion = async (req, res) => {
   try {
     const { id } = req.params;
-    const camionActualizado = await updateCamion(id, req.body);
-
+    const camionActualizado = await updateCamionModel(id, req.body);
     successResponse(res, camionActualizado, 'Camión actualizado exitosamente');
   } catch (error) {
     if (error.message === 'Camión no encontrado') {
@@ -56,54 +51,11 @@ export const updateCamionController = async (req, res) => {
   }
 };
 
-export const deleteCamionController = async (req, res) => {
+export const deleteCamion = async (req, res) => {
   try {
     const { id } = req.params;
-    await deleteCamion(id);
-
-    successResponse(res, null, 'Camión eliminado exitosamente');
-  } catch (error) {
-    if (error.message === 'Camión no encontrado') {
-      return errorResponse(res, error.message, 404);
-    }
-    errorResponse(res, error.message, 500);
-  }
-};
-
-export const getCamionesConDiasController = async (req, res) => {
-  try {
-    const camiones = await getCamionesConDias();
-    successResponse(res, camiones, 'Camiones con días obtenidos exitosamente');
-  } catch (error) {
-    errorResponse(res, error.message, 500);
-  }
-};
-
-export const asignarDiasACamionController = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { diasIds } = req.body;
-
-    if (!diasIds || !Array.isArray(diasIds)) {
-      return errorResponse(res, 'Se requiere un array de IDs de días', 400);
-    }
-
-    await asignarDiasACamion(id, diasIds);
-    successResponse(res, null, 'Días asignados al camión exitosamente');
-  } catch (error) {
-    if (error.message === 'Camión no encontrado') {
-      return errorResponse(res, error.message, 404);
-    }
-    errorResponse(res, error.message, 500);
-  }
-};
-
-export const getDiasCamionController = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const dias = await getDiasCamion(id);
-
-    successResponse(res, dias, 'Días del camión obtenidos exitosamente');
+    const camionEliminado = await deleteCamionModel(id);
+    successResponse(res, camionEliminado, 'Camión eliminado exitosamente');
   } catch (error) {
     if (error.message === 'Camión no encontrado') {
       return errorResponse(res, error.message, 404);

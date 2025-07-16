@@ -1,6 +1,6 @@
 // routes/ping.js
 import express from 'express';
-import prisma from '../config/database.js';
+import prisma from '../lib/prisma.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
 
 const router = express.Router();
