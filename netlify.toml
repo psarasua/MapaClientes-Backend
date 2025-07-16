@@ -12,6 +12,16 @@
   publish = "."
 
 [[redirects]]
+  from = "/api/clientes"
+  to = "/.netlify/functions/clientes"
+  status = 200
+
+[[redirects]]
+  from = "/api/clientes/*"
+  to = "/.netlify/functions/clientes"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api-sync/:splat"
   status = 200
