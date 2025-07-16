@@ -2,7 +2,6 @@
 import express from "express";
 import cors from "cors";
 import serverless from "serverless-http";
-import prisma from "../../lib/prisma.js";
 
 // Importar rutas modularizadas
 import camionesRoutes from "../../routes/camiones.js";
@@ -51,29 +50,12 @@ app.use((req, res, next) => {
 // Ruta principal con información de la API
 app.get("/api", async (req, res) => {
   try {
-    // Verificar estado de la base de datos
-    let dbStatus = "🔴 Desconectada";
-    let dbResponseTime = 0;
-
-    try {
-      const dbStart = Date.now();
-      await prisma.$queryRaw`SELECT 1`;
-      dbResponseTime = Date.now() - dbStart;
-      dbStatus = "🟢 Conectada";
-    } catch (error) {
-      dbStatus = "🔴 Error de conexión";
-      console.error("Error de DB:", error.message);
-    }
-
     const response = {
       success: true,
       message: "API MapaClientes Backend",
       version: "2.0.0",
       timestamp: new Date().toISOString(),
-      database: {
-        status: dbStatus,
-        responseTime: `${dbResponseTime}ms`,
-      },
+      environment: process.env.NODE_ENV || "development",
       endpoints: {
         camiones: "/api/camiones",
         clientes: "/api/clientes",

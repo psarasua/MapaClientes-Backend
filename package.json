@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "build": "npm install",
+    "build": "npm install && npx prisma generate",
+    "postinstall": "prisma generate",
     "dev": "netlify dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

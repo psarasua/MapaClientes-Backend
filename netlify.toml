@@ -1,6 +1,6 @@
 [build]
   functions = "netlify/functions"
-  command = "npm install"
+  command = "npm install && npx prisma generate"
   publish = "."
 
 [functions]
@@ -13,7 +13,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/api-simple/:splat"
+  to = "/.netlify/functions/api/:splat"
   status = 200
 
 [[redirects]]
