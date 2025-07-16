@@ -68,3 +68,18 @@ model CamionDia {
   @@unique([camionId, diaEntregaId])
   @@map("camiones_dias")
 }
+
+model Usuarios {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  nombre    String
+  apellido  String
+  rol       String   @default("user") // user, admin, super_admin
+  activo    Boolean  @default(true)
+  lastLogin DateTime? @map("last_login")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  @@map("usuarios")
+}

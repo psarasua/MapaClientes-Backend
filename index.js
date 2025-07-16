@@ -14,6 +14,7 @@ console.log('🔧 Variables de entorno configuradas');
 import camionesRoutes from './routes/camiones.js';
 import clientesRoutes from './routes/clientes.js';
 import diasEntregaRoutes from './routes/diasEntrega.js';
+import usuariosRoutes from './routes/usuarios.js';
 import healthRoutes from './routes/health.js';
 import pingRoutes from './routes/ping.js';
 
@@ -56,6 +57,7 @@ app.get('/', (req, res) => {
       camiones: '/api/camiones',
       clientes: '/api/clientes',
       diasEntrega: '/api/dias-entrega',
+      usuarios: '/api/usuarios',
       health: '/api/health',
       ping: '/api/ping',
     },
@@ -73,6 +75,7 @@ app.get('/api', (req, res) => {
       camiones: '/api/camiones',
       clientes: '/api/clientes',
       diasEntrega: '/api/dias-entrega',
+      usuarios: '/api/usuarios',
       health: '/api/health',
       ping: '/api/ping',
     },
@@ -83,6 +86,7 @@ app.get('/api', (req, res) => {
 app.use('/api/camiones', camionesRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/dias-entrega', diasEntregaRoutes);
+app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/ping', pingRoutes);
 
