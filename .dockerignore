@@ -1,0 +1,6 @@
+# Fly.io deployment files
+fly.toml
+.fly/
+
+# Fly.io logs
+*.log

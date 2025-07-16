@@ -1,11 +1,11 @@
 // models/clientesModel.js
-import prisma from "../lib/prisma.js";
+import prisma from '../lib/prisma.js';
 
 // Obtener todos los clientes con paginación y filtros
 export async function getAllClientes({
   page = 1,
   limit = 10,
-  search = "",
+  search = '',
   activo = undefined,
 }) {
   const skip = (page - 1) * limit;
@@ -15,14 +15,14 @@ export async function getAllClientes({
 
   if (search) {
     where.OR = [
-      { nombre: { contains: search, mode: "insensitive" } },
-      { razon: { contains: search, mode: "insensitive" } },
-      { direccion: { contains: search, mode: "insensitive" } },
+      { nombre: { contains: search, mode: 'insensitive' } },
+      { razon: { contains: search, mode: 'insensitive' } },
+      { direccion: { contains: search, mode: 'insensitive' } },
     ];
   }
 
   if (activo !== undefined) {
-    where.activo = activo === "true";
+    where.activo = activo === 'true';
   }
 
   // Obtener total de registros
@@ -33,7 +33,7 @@ export async function getAllClientes({
     where,
     skip,
     take: limit,
-    orderBy: { nombre: "asc" },
+    orderBy: { nombre: 'asc' },
     select: {
       id: true,
       codigoAlternativo: true,
@@ -61,7 +61,7 @@ export async function getClienteById(id) {
   });
 
   if (!cliente) {
-    throw new Error("Cliente no encontrado");
+    throw new Error('Cliente no encontrado');
   }
 
   return cliente;
@@ -76,7 +76,7 @@ export async function createCliente(clienteData) {
     });
 
     if (existingClient) {
-      throw new Error("Ya existe un cliente con este RUT");
+      throw new Error('Ya existe un cliente con este RUT');
     }
   }
 
@@ -105,7 +105,7 @@ export async function updateCliente(id, clienteData) {
   });
 
   if (!existingClient) {
-    throw new Error("Cliente no encontrado");
+    throw new Error('Cliente no encontrado');
   }
 
   // Validar RUT único (excepto el cliente actual)
@@ -118,7 +118,7 @@ export async function updateCliente(id, clienteData) {
     });
 
     if (duplicateClient) {
-      throw new Error("Ya existe un cliente con este RUT");
+      throw new Error('Ya existe un cliente con este RUT');
     }
   }
 
@@ -147,7 +147,7 @@ export async function deleteCliente(id) {
   });
 
   if (!cliente) {
-    throw new Error("Cliente no encontrado");
+    throw new Error('Cliente no encontrado');
   }
 
   // Soft delete - marcar como inactivo
@@ -164,7 +164,7 @@ export async function deleteClientePermanente(id) {
   });
 
   if (!cliente) {
-    throw new Error("Cliente no encontrado");
+    throw new Error('Cliente no encontrado');
   }
 
   return await prisma.clientes.delete({
@@ -176,7 +176,7 @@ export async function deleteClientePermanente(id) {
 export async function getClientesActivos() {
   return await prisma.clientes.findMany({
     where: { activo: true },
-    orderBy: { nombre: "asc" },
+    orderBy: { nombre: 'asc' },
   });
 }
 
@@ -185,20 +185,20 @@ export async function searchClientes(searchTerm) {
   return await prisma.clientes.findMany({
     where: {
       OR: [
-        { nombre: { contains: searchTerm, mode: "insensitive" } },
-        { razon: { contains: searchTerm, mode: "insensitive" } },
-        { direccion: { contains: searchTerm, mode: "insensitive" } },
-        { rut: { contains: searchTerm, mode: "insensitive" } },
+        { nombre: { contains: searchTerm, mode: 'insensitive' } },
+        { razon: { contains: searchTerm, mode: 'insensitive' } },
+        { direccion: { contains: searchTerm, mode: 'insensitive' } },
+        { rut: { contains: searchTerm, mode: 'insensitive' } },
       ],
     },
-    orderBy: { nombre: "asc" },
+    orderBy: { nombre: 'asc' },
   });
 }
 
 // Obtener solo la ubicación de un cliente
 export async function getClienteUbicacion(id) {
   if (!id) {
-    throw new Error("ID del cliente es requerido");
+    throw new Error('ID del cliente es requerido');
   }
 
   const cliente = await prisma.clientes.findUnique({
@@ -213,7 +213,7 @@ export async function getClienteUbicacion(id) {
   });
 
   if (!cliente) {
-    throw new Error("Cliente no encontrado");
+    throw new Error('Cliente no encontrado');
   }
 
   return cliente;

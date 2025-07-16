@@ -145,9 +145,49 @@ Los archivos SQL en `schema/` contienen la estructura para una futura implementa
 - `dias_entrega.sql` - Tabla de días de entrega
 - `camiones_dias.sql` - Relación camiones-días
 
+## 🚀 Deployment en Fly.io
+
+Este proyecto está optimizado para deployar en Fly.io. Para más información detallada, consulta [FLY_DEPLOYMENT.md](./FLY_DEPLOYMENT.md).
+
+### Pasos rápidos:
+
+1. **Instalar Fly CLI**
+   ```bash
+   # Windows
+   iwr https://fly.io/install.ps1 -useb | iex
+   ```
+
+2. **Inicializar y deployar**
+   ```bash
+   fly launch
+   fly secrets set DATABASE_URL="tu_database_url"
+   fly deploy
+   ```
+
+3. **Scripts disponibles**
+   ```bash
+   # Deployment automatizado
+   npm run fly:deploy
+   
+   # Ver logs
+   npm run fly:logs
+   
+   # Ver estado
+   npm run fly:status
+   ```
+
+## 🌐 URLs de producción
+
+- **API**: `https://mapclientes-backend.fly.dev`
+- **Health Check**: `https://mapclientes-backend.fly.dev/api/health`
+- **Documentación**: `https://mapclientes-backend.fly.dev/api`
+
 ## 🚀 Siguiente Pasos
 
-1. Configurar base de datos PostgreSQL (ej: Supabase)
-2. Agregar variables de entorno (`DATABASE_URL`)
-3. Implementar operaciones CRUD reales
-4. Agregar autenticación si es necesario
+1. ✅ Configurar base de datos PostgreSQL (Fly.io o externa)
+2. ✅ Agregar variables de entorno (`DATABASE_URL`)
+3. ✅ Implementar operaciones CRUD con Prisma
+4. ✅ Deployment automatizado en Fly.io
+5. 🔄 Agregar autenticación si es necesario
+6. 🔄 Implementar rate limiting
+7. 🔄 Agregar más tests automatizados
