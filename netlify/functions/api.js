@@ -3,13 +3,6 @@ import express from "express";
 import cors from "cors";
 import serverless from "serverless-http";
 
-// Importar rutas modularizadas
-import camionesRoutes from "../../routes/camiones.js";
-import clientesRoutes from "../../routes/clientes.js";
-import diasEntregaRoutes from "../../routes/diasEntrega.js";
-import healthRoutes from "../../routes/health.js";
-import pingRoutes from "../../routes/ping.js";
-
 // Crear aplicación Express
 const app = express();
 
@@ -84,11 +77,26 @@ app.get("/", (req, res) => {
 });
 
 // Usar las rutas modularizadas
-app.use("/api/camiones", camionesRoutes);
-app.use("/api/clientes", clientesRoutes);
-app.use("/api/dias-entrega", diasEntregaRoutes);
-app.use("/api/health", healthRoutes);
-app.use("/api/ping", pingRoutes);
+async function setupRoutes() {
+  try {
+    const { default: camionesRoutes } = await import("../../routes/camiones.js");
+    const { default: clientesRoutes } = await import("../../routes/clientes.js");
+    const { default: diasEntregaRoutes } = await import("../../routes/diasEntrega.js");
+    const { default: healthRoutes } = await import("../../routes/health.js");
+    const { default: pingRoutes } = await import("../../routes/ping.js");
+
+    app.use("/api/camiones", camionesRoutes);
+    app.use("/api/clientes", clientesRoutes);
+    app.use("/api/dias-entrega", diasEntregaRoutes);
+    app.use("/api/health", healthRoutes);
+    app.use("/api/ping", pingRoutes);
+  } catch (error) {
+    console.error("Error importing routes:", error);
+  }
+}
+
+// Configurar rutas
+setupRoutes();
 
 // Middleware de manejo de rutas no encontradas
 app.use((req, res) => {
