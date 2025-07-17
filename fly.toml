@@ -29,16 +29,21 @@ primary_region = 'eze'
     soft_limit = 20
 
   [[http_service.checks]]
-    interval = '30s'
-    timeout = '10s'
-    grace_period = '10s'
+    interval = '60s'
+    timeout = '30s'
+    grace_period = '30s'
     method = 'GET'
-    path = '/api/health'
+    path = '/api/ping'
     protocol = 'http'
     tls_skip_verify = false
+    
+    # Configuración adicional para evitar suspensión
+    [http_service.checks.headers]
+      "User-Agent" = "Fly Health Check"
 
 [[vm]]
   size = 'shared-cpu-1x'
+  processes = ['app']
 
 [[statics]]
   guest_path = '/app/public'
