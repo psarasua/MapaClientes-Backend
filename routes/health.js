@@ -1,14 +1,14 @@
 // routes/health.js
-import express from 'express';
-import prisma from '../lib/prisma.js';
-import { successResponse, errorResponse } from '../utils/responses.js';
+import express from "express";
+import prisma from "../lib/prisma.js";
+import { successResponse, errorResponse } from "../utils/responses.js";
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   const healthCheck = {
     uptime: process.uptime(),
-    message: 'Sistema saludable',
+    message: "Sistema saludable",
     timestamp: new Date().toISOString(),
     services: {},
   };
@@ -20,21 +20,22 @@ router.get('/', async (req, res) => {
     const dbTime = Date.now() - dbStart;
 
     healthCheck.services.database = {
-      status: 'healthy',
+      status: "healthy",
       responseTime: `${dbTime}ms`,
     };
   } catch (error) {
+    console.error("Database health check failed:", error);
     healthCheck.services.database = {
-      status: 'unhealthy',
+      status: "unhealthy",
       error: error.message,
     };
-    healthCheck.message = 'Sistema con problemas';
+    healthCheck.message = "Sistema con problemas";
   }
 
   // Verificar memoria
   const memoryUsage = process.memoryUsage();
   healthCheck.services.memory = {
-    status: 'healthy',
+    status: "healthy",
     usage: {
       rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
       heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
@@ -43,18 +44,18 @@ router.get('/', async (req, res) => {
     },
   };
 
-  const isHealthy = healthCheck.services.database.status === 'healthy';
+  const isHealthy = healthCheck.services.database.status === "healthy";
   const statusCode = isHealthy ? 200 : 503;
 
   if (isHealthy) {
     successResponse(
       res,
       healthCheck,
-      '✅ Sistema completamente saludable',
-      statusCode,
+      "✅ Sistema completamente saludable",
+      statusCode
     );
   } else {
-    errorResponse(res, '⚠️ Sistema con problemas', statusCode, healthCheck);
+    errorResponse(res, "⚠️ Sistema con problemas", statusCode, healthCheck);
   }
 });
 
